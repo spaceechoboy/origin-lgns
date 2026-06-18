@@ -88,6 +88,25 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media (orientation:portrait),(max-width:720px){.g2{grid-template-columns:1fr}}
+/* ── 16:9 풀스크린 셸 (시세 대시보드와 통일) ── */
+.xcd{color:var(--neon-dim);font-weight:600;white-space:nowrap}
+html,body{height:100%}
+body{overflow:hidden;display:flex;flex-direction:column}
+.hd{flex:0 0 auto}
+.hdi{max-width:none}
+.wrap{flex:1 1 auto;min-height:0;max-width:none;width:100%;margin:0;padding:clamp(10px,1.3vh,16px) clamp(12px,1vw,22px);display:flex;flex-direction:column;gap:clamp(8px,1.1vh,14px)}
+.wrap>.g2{flex:1 1 auto;min-height:0}
+.wrap>.g2>.card{display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.wrap>.g2>.card>.cb{flex:1 1 auto;min-height:0;overflow:auto}
+.wrap>.card{flex:0 0 auto;margin-bottom:0}
+@media (orientation:portrait),(max-height:600px){
+  html,body{height:auto}
+  body{overflow:auto;display:block}
+  .wrap{display:block;height:auto;max-width:980px;margin:0 auto;padding:16px 20px 70px}
+  .wrap>.g2>.card{display:block}
+  .wrap>.g2>.card>.cb{overflow:visible}
+  .wrap>.card{margin-bottom:0}
+}
 </style>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#050805">
@@ -115,7 +134,7 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
     <!-- Polygon -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">⬡ Polygon 137</div><div class="cs" id="polyMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
+        <div><div class="ct">⬡ Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span></div></div>
         <div class="badges"><span class="bdg" id="polyTax">Sell Tax —</span><button class="ev" data-ev="tax:poly" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">Turbine Fee —</span><button class="ev" data-ev="turb:poly" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
@@ -123,7 +142,7 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
     <!-- Anubis -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">𓂀 Anubis 6714</div><div class="cs" id="anuMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
+        <div><div class="ct">𓂀 Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span></div></div>
         <div class="badges"><span class="bdg" id="anuTax">Sell Tax —</span><button class="ev" data-ev="tax:anu" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">Turbine Fee —</span><button class="ev" data-ev="turb:anu" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
@@ -288,6 +307,32 @@ function rateFromAcc(key,acc,seedDay){
   return {perDay:prev.perDay||seedDay, status:prev.live?'live':'wait'}; // 같은 epoch — 아직 실측 전이면 검증대기
 }
 
+// ── 추가보상(extra) 다음 에폭 ETA — 온체인 타이머 없음(운영자 크론 ~12h, 하루 2회). 관측 전환시각+간격으로 자기보정 추정 ──
+const EXTRA_NOMINAL_MS=12*3600*1000;
+function trackExtraEpoch(chain,ep){
+  if(ep==null||isNaN(ep))return;
+  const k='xeta:'+chain, now=Date.now(), r=cg(k);
+  if(!r||typeof r.ep!=='number'){ cs(k,{ep,epTs:null,interval:null}); return; } // 최초: 기준 epoch만(전환 시각 미상)
+  if(ep>r.ep){ const iv=r.epTs?now-r.epTs:null, good=iv&&iv>6*3600e3&&iv<18*3600e3;
+    cs(k,{ep,epTs:now,interval:good?iv:(r.interval||null)}); }                  // 실제 전환 관측 → 시각 기록
+}
+function nextUtcHours(hrs){ const n=new Date(),o=[];
+  for(const dd of [0,1]) for(const h of hrs){ const d=Date.UTC(n.getUTCFullYear(),n.getUTCMonth(),n.getUTCDate()+dd,h,0,0); if(d>n.getTime()) o.push(d); }
+  return o.length?Math.min.apply(null,o):null; }
+function extraEtaMs(chain){
+  const r=cg('xeta:'+chain);
+  if(r&&r.epTs){ const p=(r.interval&&r.interval>6*3600e3&&r.interval<18*3600e3)?r.interval:EXTRA_NOMINAL_MS; return r.epTs+p; }
+  if(chain==='anu') return nextUtcHours([6,19]);   // 관측 스케줄(vault 0.95) — 전환 관측 전 콜드스타트 추정
+  return null;                                      // Polygon: 검증 앵커 없음 → 관측 전 '측정 중'
+}
+function tickExtra(){ ['poly','anu'].forEach(ch=>{ const el=$(ch==='poly'?'polyXcd':'anuXcd'); if(!el)return;
+  const eta=extraEtaMs(ch);
+  if(eta==null){ el.textContent='⏳ 추가보상 측정 중'; el.title='첫 epoch 전환 관측 후 추정 표시(온체인 타이머 없음)'; return; }
+  let left=eta-Date.now(), t;
+  if(left<=0) t='임박'; else { const h=Math.floor(left/3600000),m=Math.floor(left%3600000/60000); t='≈ '+(h>0?h+'h ':'')+m+'m'; }
+  el.textContent='⏳ 추가보상 '+t;
+  el.title='운영자 크론 ~12h · 관측 기반 추정(온체인 타이머 없음, 정밀 X)'; }); }
+
 // ───────────────────────── pure compute (testable) ─────────────────────────
 function spotFromReserves(chain,r0,r1){ return chain==='poly' ? (Number(r0)/1e18)/(Number(r1)/1e9) : (Number(r1)/1e18)/(Number(r0)/1e9); }
 function recovery(t,phi){ return 2-(1+phi)/(1-t); }                 // ≤0 = 킬스위치
@@ -360,7 +405,7 @@ async function readExtraPoly(prod){ // prod: p360|p600 — globalIndex(0x6a)/epo
   // 기준-스테이커 벽시계 방식은 측정창이 epoch 경계와 어긋나 ~6.5% 드리프트 → epoch 카운터로 정확화(Anubis와 동일).
   const c=prod==='p360'?CFG.poly.c360:CFG.poly.c600, denom=1e9;
   const gi=Number(hb(await storage('poly',c,CFG.poly.slotGI)));        // 0x6a globalIndex 누적
-  const ep=Number(hb(await storage('poly',c,CFG.poly.slotEpoch)));     // 0x6b extra epoch 카운터
+  const ep=Number(hb(await storage('poly',c,CFG.poly.slotEpoch))); if(prod==='p360')trackExtraEpoch('poly',ep);     // 0x6b extra epoch 카운터
   const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
   const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
   if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
@@ -375,7 +420,7 @@ async function readExtraAnu(prod){ // prod: a360|a600
   const c=prod==='a360'?CFG.anu.c360:CFG.anu.c600;
   const gi=Number(hb(await storage('anu',c,CFG.anu.slotGI)));            // globalIndex(0x6b) 누적
   let denom=Number(hb(await storage('anu',c,CFG.anu.slotDenom))); if(!denom)denom=1e9;
-  const ep=Number(hb(await storage('anu',c,CFG.anu.slotEpoch)));        // extra epoch 카운터(0x6c)
+  const ep=Number(hb(await storage('anu',c,CFG.anu.slotEpoch))); if(prod==='a360')trackExtraEpoch('anu',ep);        // extra epoch 카운터(0x6c)
   const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
   const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
   if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
@@ -445,6 +490,7 @@ async function go(){
 }
 
 seedState(); renderAll(); runSelfTests(); go();
+setInterval(tickExtra,1000); tickExtra();
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 </script>
 <div class="signature">SpaceEchoBoy</div>
