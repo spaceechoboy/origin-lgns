@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin LGNS — 이율</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.18/index.min.css">
+<link rel="stylesheet" href="assets/shell.css">
+<style>
+/* ANUBIS NEON — 99_Meta/templates/anubis-neon.css 와 동기화 */
+:root{
+  --bg-0:#050805; --bg-1:#0a1109; --bg-2:#0f1a0e;
+  --bg-card:#0e1610; --bg-card-2:#121f12;
+  --border:rgba(159,232,112,.18); --border-strong:rgba(159,232,112,.35);
+  --neon:#9FE870; --neon-bright:#B5FF7D; --neon-dim:#6BB048;
+  --text:#E8F5E0; --text-dim:#9CA89A; --text-faint:#6B7569;
+  --danger:#FF6B6B; --warn:#FFB84D; --note:#6BB048; --gold:#E8C547; --info:#7FD4E8;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em}
+body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -200px,rgba(159,232,112,.08),transparent),radial-gradient(ellipse 800px 400px at 100% 50%,rgba(159,232,112,.03),transparent),var(--bg-0)}
+.hd{position:sticky;top:0;z-index:100;background:rgba(5,8,5,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 0}
+.hdi{max-width:980px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.logo{font-size:19px;font-weight:900;color:var(--neon);text-shadow:0 0 24px rgba(159,232,112,.4)}
+.sts{font-size:11px;color:var(--text-faint);margin-top:3px}
+.sts b{color:var(--neon);font-weight:600}
+.br{padding:9px 18px;border-radius:9px;border:none;background:var(--neon);color:var(--bg-0);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:.2s}
+.br:hover{opacity:.85}.br:disabled{background:var(--bg-card-2);color:var(--text-faint);cursor:default;opacity:.6}
+.wrap{max-width:980px;margin:0 auto;padding:16px 20px 70px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.ch{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:linear-gradient(135deg,rgba(159,232,112,.05),transparent 70%)}
+.ct{font-size:14px;font-weight:800;color:var(--text)}
+.cs{font-size:10.5px;color:var(--text-faint);margin-top:2px}
+.cb{padding:14px 18px}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.bdg{display:inline-flex;align-items:center;font:700 11px/1 var(--mono);padding:5px 10px;border-radius:100px;border:1px solid var(--border-strong);white-space:nowrap;color:var(--text-dim)}
+.bdg.warn{color:var(--warn);background:rgba(255,184,77,.10);border-color:rgba(255,184,77,.35)}
+.bdg.hi{color:var(--danger);background:rgba(255,107,107,.12);border-color:rgba(255,107,107,.4)}
+.bdg.ok{color:var(--neon);background:rgba(159,232,112,.10)}
+/* ranking */
+.rk{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid rgba(159,232,112,.06)}
+.rk:last-child{border-bottom:none}
+.rkmed{font-size:22px;width:30px;text-align:center;flex-shrink:0}
+.rkmid{flex:1;min-width:0}
+.rkname{font-size:14px;font-weight:700;color:var(--text)}
+.rksub{font-size:10.5px;color:var(--text-faint);font-family:var(--mono);margin-top:2px}
+.rkright{text-align:right;flex-shrink:0}
+.rknet{font-family:var(--mono);font-size:22px;font-weight:900;color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.3);line-height:1}
+.rknet .u{font-size:11px;color:var(--text-faint);font-weight:600;text-shadow:none}
+.rknet.kill{color:var(--danger);text-shadow:0 0 16px rgba(255,107,107,.3)}
+.rkep{font-size:10.5px;color:var(--text-faint);font-family:var(--mono);font-weight:600;margin-top:3px}
+.bar{height:5px;border-radius:3px;background:var(--bg-2);margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--neon-dim),var(--neon));border-radius:3px;transition:width .5s}
+.bar i.kill{background:var(--danger)}
+/* product rates */
+.prod{padding:11px 0;border-bottom:1px dashed rgba(159,232,112,.10)}
+.prod:last-child{border-bottom:none}
+.prod-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.prod-t{font-size:13px;font-weight:800;color:var(--neon-bright)}
+.prod-meta{font-size:10px;color:var(--text-faint);font-family:var(--mono)}
+.rrow{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 0}
+.rl{font-size:12px;color:var(--text-dim)}
+.rv{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--text);text-align:right;white-space:nowrap}
+.rv.hot{color:var(--neon)}
+.rv .sub{font-size:10px;color:var(--text-faint);font-weight:400;margin-left:6px}
+.ev{background:none;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0 3px;opacity:.7;vertical-align:middle}
+.ev:hover{opacity:1}
+.evrow{font-size:11.5px;color:var(--text-dim);font-family:var(--mono);padding:7px 9px;margin:3px 0 7px;line-height:1.65;background:rgba(159,232,112,.05);border-left:2px solid var(--neon);border-radius:6px}
+.evrow .evb{color:var(--neon-bright);font-weight:700;margin-bottom:4px;font-size:12px}
+.evrow .evi{word-break:break-all;margin-top:2px}
+.evrow a{color:var(--neon-bright);text-decoration:none;border-bottom:1px solid var(--neon)}
+.evrow a:hover{color:#fff}
+.evdim{color:var(--text-faint);font-weight:400}
+.bdg[data-ev]{cursor:pointer}
+#blk a{color:var(--text-dim);text-decoration:none;border-bottom:1px dotted var(--text-faint)}
+#blk a:hover{color:var(--neon)}
+.eqtag,.sttag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;margin-left:5px;font-family:var(--mono)}
+.eqtag{background:rgba(127,212,232,.13);color:var(--info)}
+.sttag{background:rgba(159,232,112,.13);color:var(--neon)}
+.sttag.seed{background:rgba(255,184,77,.13);color:var(--warn)}
+.sttag.wait{background:rgba(108,117,105,.18);color:var(--text-faint)}
+.note{font-size:11px;color:var(--text-faint);line-height:1.6;margin-top:4px}
+.foot{font-size:10.5px;color:var(--text-faint);line-height:1.7;padding:4px 2px 0}
+.foot b{color:var(--text-dim)}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--neon);animation:pulse 2s ease-in-out infinite;margin-right:5px;box-shadow:0 0 8px var(--neon);vertical-align:middle}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (orientation:portrait),(max-width:720px){.g2{grid-template-columns:1fr}}
+</style>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050805">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Origin LGNS">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-180.png">
+</head>
+<body>
+<div class="hd"><div class="hdi">
+  <div>
+    <div class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</div>
+    <nav class="nav-tabs" style="margin:6px 0 2px"><a class="nav-tab" href="index.html">시세</a><a class="nav-tab active" href="rates.html">이율</a></nav>
+    <div class="sts"><span class="pulse"></span>온체인 라이브 · Polygon 137 · Anubis 6714 · <b id="lastU">로딩중…</b> <span id="blk" style="color:var(--text-faint)"></span></div>
+  </div>
+  <button class="br" id="btnR" onclick="go()">🔄 새로고침</button>
+</div></div>
+
+<div class="wrap">
+
+  <div class="g2">
+    <!-- Polygon -->
+    <div class="card">
+      <div class="ch">
+        <div><div class="ct">⬡ Polygon 137</div><div class="cs" id="polyMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
+        <div class="badges"><span class="bdg" id="polyTax">매도세 —</span><button class="ev" data-ev="tax:poly" title="매도세 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">터빈세 —</span><button class="ev" data-ev="turb:poly" title="터빈 컨트랙트">🔗</button></div>
+      </div>
+      <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
+    </div>
+    <!-- Anubis -->
+    <div class="card">
+      <div class="ch">
+        <div><div class="ct">𓂀 Anubis 6714</div><div class="cs" id="anuMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
+        <div class="badges"><span class="bdg" id="anuTax">매도세 —</span><button class="ev" data-ev="tax:anu" title="매도세 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">터빈세 —</span><button class="ev" data-ev="turb:anu" title="터빈 컨트랙트">🔗</button></div>
+      </div>
+      <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
+    </div>
+  </div>
+
+  <div class="card"><div class="cb">
+    <div class="foot">
+      <b>이율 3종</b> — ① 일반 rebase(복리, 체인 단일·6h epoch ×4/day) · ② 장기 base interest(락업 원금에 적용되는 복리 = 체인 rebase, 별도 율 없음) · ③ extra interest(단리, 상품 전용·12h epoch ×2/day, 터빈 입력).<br>
+      <b>매도세·터빈세</b>는 매 새로고침 온체인 실측(라이브).<br>
+      ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·매도세·터빈세는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 첫 표본은 세션 baseline(2026-06-15 교차검증)으로 표시 후 라이브 델타로 자기수정. read-only.
+    </div>
+  </div></div>
+
+</div>
+
+<script>
+"use strict";
+// ───────────────────────── CFG ─────────────────────────
+const CFG={
+  poly:{
+    rpcs:["https://polygon-rpc.com","https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org","https://1rpc.io/matic"],
+    staking:"0x1964Ca90474b11FFD08af387b110ba6C96251Bfc",
+    slgns:"0x99a57E6C8558BC6689f894e068733ADf83C19725",
+    turbine:"0x07Ff4e06865de4934409Aa6eCea503b08Cc1C78d",
+    quote:"0xbffc7b0c",                               // getSilenceUSDTAmount(uint256) — Polygon
+    lp:"0x882df4B0fB50a229C3B4124EB18c759911485bFb",   // token0=DAI(18) token1=LGNS(9)
+    lgns:"0xeB51D9A39AD5EEF215dC0Bf39a8821ff804A0F01",
+    c360:"0x6652d0f0D7aEc5070804E55b7023d32B9Bbc4190",
+    c600:"0x8cA97F41d2C81AF050656e8AD0Cf543820a24504",
+    ref360:["0xFB69AAa41bC497D674cF42a1EdA2FF11465872dd","0x736d22D1d971AfbbB08545800F20F032312a87fF"],
+    ref600:["0xedeC9331852eeB076811Ef8Bc60bceE10c74e352","0x110D74f97EAe92ADcC85D3f94469edd102840fB8"],
+    slotGI:"0x6a", slotEpoch:"0x6b",   // 아카이브 검증(2026-06-17): inc 783000/1200000 ÷ 1e9 = seed, epoch 12.00h
+  },
+  anu:{
+    rpcs:["https://rpc.anubispace.org"],
+    slgns:"0x2243aE29F73137d678197b61B0621AE942845B8C",
+    turbine:"0x92B53785090F6FE0717Ca3cF5dB8f8040d3B070b",
+    quote:"0x5c083dc6",                               // Anubis silence 매수 DAI 견적(impl 0xb3ec6e45 — getSilenceUSDTAmount 부재)
+    feeRateSel:"0x2d5ec9b9", feePrec:10000,           // ★silence 실행 시 매수액 위 별도 프로토콜 수수료 = 500/10000 = 5% → 0x8c4ea5da (2026-06-15 실거래 디코드 실증)
+    lp:"0x32A4586797E3f561F41C0F47CA57eD08D64f3dC0",   // token0=LGNS(9) token1=DAI(18)
+    lgns:"0x4D1D808a081FdAc440703b3765FC61f8028C06B8",
+    c360:"0x88ea98af226Cd4402A3873400308a4D78784eCE6",
+    c600:"0x04eD22c6d1D020A9B5e032E93D79ab28293EF72f",
+    slotGI:"0x6b", slotDenom:"0x71", slotEpoch:"0x6c",
+  },
+  sel:{ epoch:"0x900cf0cf", circulating:"0x9358928b", totalSupply:"0x18160ddd",
+    getReserves:"0x0902f1ac", silenceUSDT:"0xbffc7b0c", index:"0x2986c0e5", curEpoch:"0x76671808",
+    extraInterest:"0xb01d3563", stakes:"0x584b62a1", feeRatio:"0x41744dd4", extraFeeRatio:"0x3c336ff4" },
+  // 세션 baseline (2026-06-15 교차검증) — 첫 로드 즉시표시, 라이브 델타로 갱신
+  seed:{
+    extraDay:{p360:0.2400,p600:0.1566,a360:0.3000,a600:0.3900},
+    extraEp :{p360:0.1200,p600:0.0783,a360:0.1500,a600:0.1950},
+    rebaseDay:{poly:0.5994,anu:0.5981}, rebaseEp:{poly:0.1499,anu:0.1495},
+    sellTax:{poly:0.05,anu:0.2875}, turbFee:{poly:0.003,anu:0.053}, // Polygon ≈0.3%(수수료 無) / Anubis ≈5.3%(매수 0.3% + 프로토콜 5%, 2026-06-15 실거래 디코드 실증)
+  },
+  EXTRA_EP_PER_DAY:2, REB_EP_PER_DAY:4,
+};
+const PROD=[
+  {k:"p360",chain:"poly",name:"Polygon 360일",term:"31,104,000s ≈360d"},
+  {k:"p600",chain:"poly",name:"Polygon 600일",term:"25,920,000blk ≈600d"},
+  {k:"a360",chain:"anu", name:"Anubis 360일", term:"31,104,000s ≈360d"},
+  {k:"a600",chain:"anu", name:"Anubis 600일", term:"51,840,000s ≈600d"},
+];
+
+// ───────────────────────── 온체인 근거 (evidence links) ─────────────────────────
+const EXPL ={ poly:"https://polygonscan.com", anu:"https://browser.anubispace.org" };       // 사람용 링크
+const BSAPI={ poly:"https://polygon.blockscout.com", anu:"https://browser.anubispace.org" }; // 원인 tx 조회(무료·키없음)
+const ORACLE_ANU="0xb4E5b7665186229d8A5B0ba3706c5C119dD1B47b", ACCT_ANU="0x3041C3524C560C7e8887F671e046aC4e95bD8F13";
+// 율별 소스 컨트랙트 + (가능 시)정확한 원인 tx 필터. cause=null → 컨트랙트+블록 링크만(검증가능).
+// v=익스플로러 verified(Read 탭 有) · k=값 출처(getter=뷰함수 / storage=스토리지슬롯). 검증상태 실측(2026-06-18): Polygon=verified, Anubis=unverified.
+const EVID={
+  "reb:poly":  {chain:"poly", v:true,  k:"getter",  src:CFG.poly.staking, cause:null,
+                basis:"Staking 다음 발행량 ÷ sLGNS 유통량 (즉시값)", look:"epoch() 4번째값(distribute) ÷ circulatingSupply()"},
+  "reb:anu":   {chain:"anu",  v:false, k:"getter",  src:ORACLE_ANU, cause:{addr:ORACLE_ANU, method:"0xa1849438", label:"오라클이 인덱스를 새 값으로 갱신"},
+                basis:"오라클 인덱스의 epoch당 성장률 (복리)", look:"currentIndex()·currentEpoch()"},
+  "extra:p360":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c360, cause:null, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a(globalIndex)·0x6b(epoch), 매 epoch +1,200,000"},
+  "extra:p600":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c600, cause:null, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a·0x6b, 매 epoch +783,000"},
+  "extra:a360":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c360, cause:null,
+                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b(globalIndex)·0x6c(epoch), 매 epoch +1,500,000"},
+  "extra:a600":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c600, cause:null,
+                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b·0x6c, 매 epoch +1,950,000"},
+  "tax:poly":  {chain:"poly", v:true,  k:"getter",  src:CFG.poly.lgns, cause:null, basis:"LGNS 토큰 매도 수수료율", look:"feeRatio()(÷1e5) + extraFeeRatio()"},
+  "tax:anu":   {chain:"anu",  v:false, k:"getter",  src:CFG.anu.lgns, cause:null, basis:"LGNS 토큰 매도 수수료율(동적)", look:"feeRatio()·extraFeeRatio() (각 ÷1e5)"},
+  "turb:poly": {chain:"poly", v:true,  k:"getter",  src:CFG.poly.turbine, cause:null, basis:"1 LGNS silence 매수견적 ÷ LP시장가 − 1", look:"getSilenceUSDTAmount() ÷ LP getReserves()"},
+  "turb:anu":  {chain:"anu",  v:false, k:"getter",  src:CFG.anu.turbine, cause:null, basis:"1 LGNS silence 매수견적 ÷ LP시장가 + 5% 수수료", look:"silence 견적 ÷ getReserves() + 수수료율"},
+};
+function readUrl(chain,addr){ return chain==="anu" ? EXPL.anu+"/address/"+addr+"?tab=read_contract" : EXPL.poly+"/address/"+addr+"#readContract"; }
+function exUrl(chain,type,id){ return EXPL[chain]+"/"+type+"/"+id; }   // type: address|tx|block
+const evId=k=>"ev-"+k.replace(/:/g,"-"), _txCache={};
+async function causeTx(key){
+  if(key in _txCache) return _txCache[key];
+  const e=EVID[key]; if(!e||!e.cause) return _txCache[key]=null;
+  try{
+    const url=BSAPI[e.chain]+"/api/v2/addresses/"+e.cause.addr+"/transactions"+(e.cause.from?"?filter=from":"");
+    const j=await (await fetch(url)).json();
+    const t=(j.items||[]).find(x=>(x.method||"")===e.cause.method);
+    return _txCache[key]= t?{hash:t.hash,block:t.block_number}:null;
+  }catch(_){ return _txCache[key]=null; }                              // 폴백: 원인 tx 생략(컨트랙트+블록은 유지)
+}
+// 대시보드가 직접 읽은 실제 값 (미검증 컨트랙트는 익스플로러 Read 탭이 없으니 이게 핵심 근거)
+function vals(key){
+  if(key.indexOf("reb:")===0){ const c=cg(key); if(c&&typeof c.idx==="number") return "인덱스 "+c.idx.toFixed(2)+" · epoch "+c.ep; }
+  if(key.indexOf("extra:")===0){ const c=cg(key); if(c&&typeof c.gi==="number") return "globalIndex "+c.gi.toLocaleString("en-US")+" · epoch "+c.ep; }
+  const m=key.match(/^(tax|turb):(poly|anu)$/);
+  if(m){ const v=m[1]==="tax"?S[m[2]].sellTax:S[m[2]].turbFee; if(v!=null&&!isNaN(v)) return (m[1]==="tax"?"매도세 ":"터빈세 φ ")+(v*100).toFixed(2)+"%"; }
+  return null;
+}
+function fillEvRow(key){
+  const e=EVID[key], el=$(evId(key)); if(!el||!e) return;
+  const ch=e.chain, blk=S.block[ch], A=(t,u)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+' ↗</a>';
+  const mv=vals(key), readTab=e.v&&e.k==="getter";
+  let h='<div class="evb">이 율 = '+e.basis+'</div>';
+  if(mv) h+='<div class="evi">🔢 측정값 <b>'+mv+'</b> <span class="evdim">(대시보드가 eth_call로 직접 읽음)</span></div>';
+  if(e.cause) h+='<div class="evi evtx evdim">⏳ 변경 tx 조회중…</div>';
+  if(readTab)
+    h+='<div class="evi">📄 컨트랙트 '+A(e.src.slice(0,10)+"…", readUrl(ch,e.src))+' <span class="evdim">→ verified: Read 탭에서 '+e.look+' 직접 호출</span></div>';
+  else
+    h+='<div class="evi">📄 컨트랙트 '+A(e.src.slice(0,10)+"…", exUrl(ch,"address",e.src))+' <span class="evdim">→ '+(e.v?"":"⚠ 미검증(Read 탭 없음). ")+(e.k==="storage"?"값=스토리지 "+e.look:e.look)+" · 검증은 위 측정값 + "+(e.cause?"아래 변경 tx":"Transactions/Logs 탭")+'</span></div>';
+  h+='<div class="evi">⏱ 읽은 블록 '+(blk?A("#"+blk, exUrl(ch,"block",blk)):"—")+' <span class="evdim">(측정 시점)</span></div>';
+  el.innerHTML=h; el.hidden=false;
+  if(e.cause) causeTx(key).then(tx=>{ const sp=el.querySelector(".evtx"); if(!sp)return;
+    sp.classList.remove("evdim");
+    sp.innerHTML = tx ? '🔗 변경 tx '+A(String(tx.hash).slice(0,12)+"…", exUrl(ch,"tx",tx.hash))+' <span class="evdim">— '+e.cause.label+" (blk "+tx.block+")</span>"
+                      : '🔄 변경 tx 조회 실패 → 컨트랙트 Transactions 탭'; });
+}
+document.addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-ev]"); if(!b) return;
+  const key=b.dataset.ev, e=EVID[key]; if(!e) return;
+  if(key.startsWith("reb:")||key.startsWith("extra:")){            // 율 행 → 펼침 토글
+    const el=$(evId(key)); if(!el) return;
+    const open=el.hidden; if(open) fillEvRow(key); else el.hidden=true;
+    b.setAttribute("aria-expanded", open?"true":"false");
+  } else window.open(exUrl(e.chain,"address",e.src),"_blank","noopener");  // 배지 → 소스 컨트랙트 직링크
+});
+
+// ───────────────────────── helpers ─────────────────────────
+const $=id=>document.getElementById(id);
+const fN=(n,d=4)=>n==null||isNaN(n)?'—':Number(n).toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(n,d=4)=>n==null||isNaN(n)?'—':fN(n,d)+'%';
+const toHex32=n=>BigInt(n).toString(16).padStart(64,'0');
+const addr32=a=>a.toLowerCase().replace('0x','').padStart(64,'0');
+const hb=h=>BigInt(h&&h!=='0x'?h:'0x0');
+function words(hex){const h=(hex||'').replace(/^0x/,'');const o=[];for(let i=0;i<h.length;i+=64)o.push(hb('0x'+(h.slice(i,i+64)||'0')));return o;}
+async function rpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
+async function call(chain,to,data){let e;for(const u of CFG[chain].rpcs){try{return await rpc(u,'eth_call',[{to,data},'latest']);}catch(x){e=x;}}throw e;}
+async function storage(chain,addr,slot){let e;for(const u of CFG[chain].rpcs){try{return await rpc(u,'eth_getStorageAt',[addr,slot,'latest']);}catch(x){e=x;}}throw e;}
+async function blkNum(chain){for(const u of CFG[chain].rpcs){try{return Number(hb(await rpc(u,'eth_blockNumber',[])));}catch(x){}}return null;}
+
+// localStorage delta cache: 누적 metric(acc)이 epoch마다 증가 → 시간당 증가율(%/day)
+function cg(k){try{return JSON.parse(localStorage.getItem('lgnsr:'+k));}catch(e){return null;}}
+function cs(k,v){try{localStorage.setItem('lgnsr:'+k,JSON.stringify(v));}catch(e){}}
+function rateFromAcc(key,acc,seedDay){
+  const prev=cg(key), now=Date.now();
+  if(!prev){ cs(key,{acc,ts:now,perDay:seedDay,live:false}); return {perDay:seedDay,status:'seed'}; }
+  if(acc>prev.acc){                       // epoch 증분 발생 → 실측
+    const days=(now-prev.ts)/86400000;
+    if(days>=0.18){ const perDay=(acc-prev.acc)*100/days; cs(key,{acc,ts:now,perDay,live:true}); return {perDay,status:'live'}; }
+    return {perDay:prev.perDay||seedDay, status:prev.live?'live':'wait'}; // 표본 너무 짧음 — baseline ts 보존
+  }
+  if(acc<prev.acc){ cs(key,{acc,ts:now,perDay:seedDay,live:false}); return {perDay:seedDay,status:'seed'}; } // 클레임 리셋 → 재기준
+  return {perDay:prev.perDay||seedDay, status:prev.live?'live':'wait'}; // 같은 epoch — 아직 실측 전이면 검증대기
+}
+
+// ───────────────────────── pure compute (testable) ─────────────────────────
+function spotFromReserves(chain,r0,r1){ return chain==='poly' ? (Number(r0)/1e18)/(Number(r1)/1e9) : (Number(r1)/1e18)/(Number(r0)/1e9); }
+function recovery(t,phi){ return 2-(1+phi)/(1-t); }                 // ≤0 = 킬스위치
+function netEff(extraDay,rec){ return extraDay*Math.max(rec,0)*1; } // 음수 회수는 0으로 클램프(킬스위치 표시)
+function rawNet(extraDay,rec){ return extraDay*rec; }
+
+function runSelfTests(){
+  let ok=true; const chk=(c,m)=>{if(!c){ok=false;console.error('SELFTEST FAIL:',m);}};
+  chk(Math.abs(recovery(0.05,0.003)-0.94421)<1e-4,'recovery poly');
+  chk(Math.abs(recovery(0.2875,0.05)-0.52632)<1e-4,'recovery anu φ5%');
+  chk(Math.abs(recovery(0.50,0)-0)<1e-9,'killswitch 50%');
+  chk(recovery(0.55,0)<0,'killswitch >50% negative');
+  chk(Math.abs(rawNet(0.24,recovery(0.05,0.003))-0.22661)<1e-3,'net poly360');
+  chk(Math.abs(rawNet(0.39,recovery(0.2875,0.05))-0.20526)<1e-3,'net anu600 φ5%');
+  chk(Math.abs(spotFromReserves('poly',145845869810072400000000000n,55998319335534200n)-2.6045)<0.01,'poly spot');
+  chk(Math.abs(spotFromReserves('anu',36361161864700000n,147357506548200000000000000n)-4.0526)<0.01,'anu spot');
+  chk(toHex32(1000000000)==='000000000000000000000000000000000000000000000000000000003b9aca00','encode 1e9');
+  console.log(ok?'✅ self-tests passed':'❌ self-tests failed'); return ok;
+}
+
+// ───────────────────────── state ─────────────────────────
+const S={ poly:{}, anu:{}, extra:{}, block:{} };
+function seedState(){
+  S.poly.sellTax=CFG.seed.sellTax.poly; S.anu.sellTax=CFG.seed.sellTax.anu;
+  S.poly.turbFee=CFG.seed.turbFee.poly; S.anu.turbFee=CFG.seed.turbFee.anu;
+  S.poly.reb={perDay:CFG.seed.rebaseDay.poly,perEp:CFG.seed.rebaseEp.poly,status:'seed'};
+  S.anu.reb ={perDay:CFG.seed.rebaseDay.anu, perEp:CFG.seed.rebaseEp.anu, status:'seed'};
+  PROD.forEach(p=>{S.extra[p.k]={perDay:CFG.seed.extraDay[p.k],perEp:CFG.seed.extraEp[p.k],status:'seed'};});
+}
+
+// ───────────────────────── readers ─────────────────────────
+async function readSellTax(chain){
+  const fee=hb(await call(chain,CFG[chain].lgns,CFG.sel.feeRatio));
+  let xf=0n; try{const x=await call(chain,CFG[chain].lgns,CFG.sel.extraFeeRatio); if(x&&x!=='0x')xf=hb(x);}catch(e){}
+  return 1-(1-Number(fee)/1e5)*(1-Number(xf)/1e5);
+}
+async function readSpot(chain){ const w=words(await call(chain,CFG[chain].lp,CFG.sel.getReserves)); return spotFromReserves(chain,w[0],w[1]); }
+async function readTurbFee(chain){
+  // φ = 1 LGNS 차저를 silence할 때 시장가 대비 실제 지불 DAI 프리미엄.
+  // Polygon: getSilenceUSDTAmount(0xbffc7b0c)이 전액(수수료 없음, 실효 50%). Anubis: 매수견적(0x5c083dc6) + 별도 5% 프로토콜 수수료(0x2d5ec9b9).
+  const c=CFG[chain];
+  const buyDai=Number(hb(await call(chain,c.turbine,c.quote+toHex32(1000000000))))/1e18; // 1 LGNS 매수 견적 DAI
+  const sp=await readSpot(chain);
+  let mult=1;
+  if(c.feeRateSel){ try{ const fr=Number(hb(await call(chain,c.turbine,c.feeRateSel)))/c.feePrec; mult=1+fr; }catch(e){ mult=1.05; } }
+  return (buyDai/sp)*mult-1;
+}
+async function readRebasePoly(){
+  const ew=words(await call('poly',CFG.poly.staking,CFG.sel.epoch));            // (len,num,end,distribute)
+  const distribute=Number(ew[3]);
+  let circ; try{circ=Number(hb(await call('poly',CFG.poly.slgns,CFG.sel.circulating)));if(!circ)throw 0;}
+  catch(e){circ=Number(hb(await call('poly',CFG.poly.slgns,CFG.sel.totalSupply)));}
+  const perEp=distribute/circ*100; return {perEp,perDay:perEp*CFG.REB_EP_PER_DAY,status:'live'};
+}
+async function readRebaseAnu(){
+  // ★ 리베이스도 *온체인 epoch 카운터*(오라클 currentEpoch)로 정확 측정 — 벽시계 ÷days 드리프트 제거.
+  //   perEp = (idx/prev.idx − 1) ÷ Δepoch. (idx≈713, 오라클 6h epoch → REB_EP_PER_DAY=4)
+  const idx=Number(hb(await call('anu',CFG.anu.slgns,CFG.sel.index)))/1e9;   // 인덱스(≈713)
+  const ep=Number(hb(await call('anu',ORACLE_ANU,CFG.sel.curEpoch)));        // 오라클 currentEpoch 카운터
+  const k='reb:anu', prev=cg(k), se=CFG.seed.rebaseEp.anu;
+  const out=(perEp,status)=>({perDay:perEp*CFG.REB_EP_PER_DAY,perEp,status});
+  if(!prev||typeof prev.idx!=='number'||typeof prev.ep!=='number'){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(벽시계)캐시 → 재기준
+  if(ep>prev.ep){ const perEp=(idx/prev.idx-1)*100/(ep-prev.ep);            // ★ 상대성장 ÷ Δepoch(온체인)
+                  cs(k,{idx,ep,perEp,live:true}); return out(perEp,'live'); }
+  if(idx<prev.idx){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); } // 인덱스 감소(이상) → 재기준
+  return out((prev.perEp)||se, prev.live?'live':'wait');                     // 같은 epoch — 직전 실측 유지
+}
+async function readExtraPoly(prod){ // prod: p360|p600 — globalIndex(0x6a)/epoch(0x6b) 직접, denom 1e9
+  // 아카이브 검증(2026-06-17): inc 783000(p600)/1200000(p360) ÷ 1e9 = seed, epoch 12.00h.
+  // 기준-스테이커 벽시계 방식은 측정창이 epoch 경계와 어긋나 ~6.5% 드리프트 → epoch 카운터로 정확화(Anubis와 동일).
+  const c=prod==='p360'?CFG.poly.c360:CFG.poly.c600, denom=1e9;
+  const gi=Number(hb(await storage('poly',c,CFG.poly.slotGI)));        // 0x6a globalIndex 누적
+  const ep=Number(hb(await storage('poly',c,CFG.poly.slotEpoch)));     // 0x6b extra epoch 카운터
+  const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
+  const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
+  if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
+  if(ep>prev.ep){ const perEp=(gi-prev.gi)/(ep-prev.ep)/denom*100;     // ★ Δgi ÷ Δepoch ÷ denom
+                  cs(k,{gi,ep,perEp,live:true}); return out(perEp,'live'); }
+  if(gi<prev.gi){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 리셋/이상 → 재기준
+  return out((prev.perEp)||se, prev.live?'live':'wait');               // 같은 epoch — 직전 실측 유지
+}
+async function readExtraAnu(prod){ // prod: a360|a600
+  // ★ per-epoch는 *온체인 epoch 카운터*(slot 0x6c)로 직접 측정. 벽시계 ÷days는 extra epoch이
+  //   11~13h로 교차(평균12h)해 ±8% 드리프트 → ΔglobalIndex ÷ Δepoch ÷ denom = 정확한 epoch당 증분.
+  const c=prod==='a360'?CFG.anu.c360:CFG.anu.c600;
+  const gi=Number(hb(await storage('anu',c,CFG.anu.slotGI)));            // globalIndex(0x6b) 누적
+  let denom=Number(hb(await storage('anu',c,CFG.anu.slotDenom))); if(!denom)denom=1e9;
+  const ep=Number(hb(await storage('anu',c,CFG.anu.slotEpoch)));        // extra epoch 카운터(0x6c)
+  const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
+  const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
+  if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
+  if(ep>prev.ep){ const perEp=(gi-prev.gi)/(ep-prev.ep)/denom*100;       // ★ Δgi ÷ Δepoch ÷ denom
+                  cs(k,{gi,ep,perEp,live:true}); return out(perEp,'live'); }
+  if(gi<prev.gi){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 리셋/이상 → 재기준
+  return out((prev.perEp)||se, prev.live?'live':'wait');                 // 같은 epoch — 직전 실측 유지
+}
+
+// ───────────────────────── render ─────────────────────────
+const STT={live:['sttag','온체인Δ'],seed:['sttag seed','기준값'],wait:['sttag wait','검증대기'],calib:['sttag seed','보정중']};
+function sttag(s){const t=STT[s]||STT.seed;return `<span class="${t[0]}">${t[1]}</span>`;}
+function rateRow(label,perDay,perEp,epH,extraCls,tag,evKey){
+  const ev=evKey?` <button class="ev" data-ev="${evKey}" aria-expanded="false" title="온체인 근거">🔗</button>`:'';
+  const row=`<div class="rrow"><span class="rl">${label}</span><span class="rv ${extraCls||''}">${pct(perDay,4)}/day${tag||''}<span class="sub">${pct(perEp,4)}/ep·${epH}h${ev}</span></span></div>`;
+  return row + (evKey?`<div class="evrow" id="${evId(evKey)}" hidden></div>`:'');
+}
+function renderChain(chain){
+  const meta=chain==='poly'?'Quickswap LP · 6h rebase · extra 12h epoch':'RocketSwap LP · 6h rebase · extra 12h epoch';
+  $(chain==='poly'?'polyMeta':'anuMeta').textContent=meta;
+  const reb=chain==='poly'?S.poly.reb:S.anu.reb;
+  const prods=PROD.filter(p=>p.chain===chain);
+  let html='';
+  prods.forEach(p=>{
+    const ex=S.extra[p.k];
+    html+=`<div class="prod">
+      <div class="prod-h"><span class="prod-t">${p.k.endsWith('360')?'360일 LONG':'600일 LONG'}</span><span class="prod-meta">${p.term}</span></div>
+      ${rateRow('① 일반 rebase (복리)',reb.perDay,reb.perEp,6,'',sttag(reb.status),'reb:'+chain)}
+      ${rateRow('② 장기 base interest <span class="eqtag">=rebase</span>',reb.perDay,reb.perEp,6,'','')}
+      ${rateRow('③ extra interest (단리)',ex.perDay,ex.perEp,12,'hot',sttag(ex.status),'extra:'+p.k)}
+    </div>`;
+  });
+  $(chain==='poly'?'polyBody':'anuBody').innerHTML=html;
+  // badges
+  setBadge(chain==='poly'?'polyTax':'anuTax','매도세',(chain==='poly'?S.poly.sellTax:S.anu.sellTax)*100,'%',v=>v>=15?'hi':(v>=50?'hi':'warn'));
+  const tf=(chain==='poly'?S.poly.turbFee:S.anu.turbFee)*100;
+  setBadge(chain==='poly'?'polyTurb':'anuTurb','터빈세',tf,'%',v=>v>=10?'hi':(v>=1?'warn':'ok'));
+}
+function setBadge(id,lab,v,unit,cls){const el=$(id);if(!el)return;if(v==null||isNaN(v)){el.textContent=lab+' —';el.className='bdg';return;}el.textContent=lab+' '+fN(v,2)+unit;el.className='bdg '+cls(v);}
+
+function renderAll(){ renderChain('poly'); renderChain('anu'); }
+
+// ───────────────────────── boot / refresh ─────────────────────────
+async function go(){
+  const b=$('btnR'); if(b){b.disabled=true;b.textContent='⏳ 읽는 중…';}
+  const tasks=[
+    ['poly.sellTax',()=>readSellTax('poly').then(v=>S.poly.sellTax=v)],
+    ['anu.sellTax', ()=>readSellTax('anu').then(v=>S.anu.sellTax=v)],
+    ['poly.turbFee',()=>readTurbFee('poly').then(v=>S.poly.turbFee=v)],
+    ['anu.turbFee', ()=>readTurbFee('anu').then(v=>S.anu.turbFee=v)],
+    ['poly.reb',    ()=>readRebasePoly().then(v=>S.poly.reb=v)],
+    ['anu.reb',     ()=>readRebaseAnu().then(v=>S.anu.reb=v)],
+    ['extra.p360',  ()=>readExtraPoly('p360').then(v=>S.extra.p360=v)],
+    ['extra.p600',  ()=>readExtraPoly('p600').then(v=>S.extra.p600=v)],
+    ['extra.a360',  ()=>readExtraAnu('a360').then(v=>S.extra.a360=v)],
+    ['extra.a600',  ()=>readExtraAnu('a600').then(v=>S.extra.a600=v)],
+    ['block.poly',  ()=>blkNum('poly').then(v=>S.block.poly=v)],
+    ['block.anu',   ()=>blkNum('anu').then(v=>S.block.anu=v)],
+  ];
+  const res=await Promise.allSettled(tasks.map(t=>t[1]()));
+  res.forEach((r,i)=>{ if(r.status==='rejected') console.warn('read fail:',tasks[i][0],r.reason&&r.reason.message||r.reason); });
+  renderAll();
+  $('lastU').textContent=new Date().toLocaleTimeString('ko-KR');
+  const bl=(c,p,n)=>n?'<a href="'+exUrl(c,'block',n)+'" target="_blank" rel="noopener">'+p+'#'+n+'</a>':'';
+  $('blk').innerHTML=(S.block.poly?'· '+bl('poly','P',S.block.poly):'')+(S.block.anu?' · '+bl('anu','A',S.block.anu):'');
+  if(b){b.disabled=false;b.textContent='🔄 새로고침';}
+}
+
+seedState(); renderAll(); runSelfTests(); go();
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
+</script>
+<div class="signature">SpaceEchoBoy</div>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin LGNS — 시세</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.18/index.min.css">
+<link rel="stylesheet" href="assets/shell.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050805">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Origin LGNS">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-180.png">
+<style>
+/* ANUBIS NEON 토큰 (anubis-neon.css 동기화) + 16:9 대시보드 레이아웃 */
+:root{
+  --bg-0:#050805;--bg-1:#0a1109;--bg-2:#0f1a0e;--bg-card:#0e1610;--bg-card-2:#121f12;
+  --border:rgba(159,232,112,.18);--border-strong:rgba(159,232,112,.35);
+  --neon:#9FE870;--neon-bright:#B5FF7D;--neon-dim:#6BB048;--text:#E8F5E0;--text-dim:#9CA89A;--text-faint:#6B7569;
+  --danger:#FF6B6B;--warn:#FFB84D;--gold:#E8C547;--info:#7FD4E8;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',-apple-system,system-ui,sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(ellipse 1400px 700px at 50% -240px,rgba(159,232,112,.08),transparent),radial-gradient(ellipse 900px 500px at 100% 40%,rgba(159,232,112,.03),transparent)}
+.cg{color:var(--neon)}.cr{color:var(--danger)}.co{color:var(--warn)}.cgl{color:var(--gold)}.ca{color:var(--neon-bright)}.cdm{color:var(--text-dim)}
+.mono{font-family:var(--mono)}
+.pulse{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--neon);animation:pulse 2s ease-in-out infinite;margin-right:5px;box-shadow:0 0 8px var(--neon)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── 16:9 꽉 채움 셸 (스크롤 없음) ── */
+.dash{height:100vh;display:flex;flex-direction:column;padding:clamp(10px,1.4vh,18px) clamp(12px,1vw,22px);gap:clamp(8px,1.2vh,14px)}
+
+/* 상단바 */
+.topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.logo{font-size:clamp(18px,1.9vw,26px);font-weight:900;color:var(--neon);text-shadow:0 0 24px rgba(159,232,112,.4)}
+.sts{font-size:12px;color:var(--text-faint)}.sts b{color:var(--neon)}
+.rebase-box{display:flex;gap:10px}
+.rb-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding:7px 14px;border:1px solid var(--border-strong);border-radius:11px;background:rgba(159,232,112,.06);box-shadow:0 0 24px rgba(159,232,112,.06)}
+.rb-lab{font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap}
+.rb-val{font-family:var(--mono);font-weight:800;font-size:clamp(16px,1.5vw,22px);font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap}
+.rb-val.cd{color:var(--info);text-shadow:0 0 14px rgba(127,212,232,.3)}
+.rb-val.rate{color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.4)}
+
+/* 본문 2열 (체인) */
+.main{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1vw,16px);min-height:0}
+.chain{display:flex;flex-direction:column;gap:clamp(6px,.9vh,12px);min-height:0;background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  background-image:linear-gradient(135deg,rgba(159,232,112,.05),transparent 55%)}
+.price-strip{flex:0 0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;padding:clamp(10px,1.4vh,18px) clamp(14px,1.1vw,22px) 0}
+.ps-left{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.hero-tag{font-size:13px;color:var(--text-dim);font-weight:600}
+.pv{font-family:var(--mono);font-size:clamp(30px,3.4vw,52px);font-weight:900;color:#fff;line-height:1;text-shadow:0 0 24px rgba(159,232,112,.25)}
+.pc{font-size:15px;font-weight:700}
+.badge-premium{display:inline-flex;align-items:center;gap:5px;font:700 14px/1 var(--mono);padding:5px 12px;border-radius:100px;border:1px solid var(--border-strong)}
+.badge-premium.up{color:var(--neon);background:rgba(159,232,112,.1)}.badge-premium.down{color:var(--danger);background:rgba(255,107,107,.1)}
+.tax-badge{display:inline-flex;align-items:center;font:700 12px/1 var(--mono);padding:4px 9px;border-radius:100px;border:1px solid var(--border-strong);white-space:nowrap;color:var(--text-dim)}
+.tax-badge.lo{color:var(--warn);background:rgba(255,184,77,.10);border-color:rgba(255,184,77,.35)}
+.tax-badge.hi{color:var(--danger);background:rgba(255,107,107,.12);border-color:rgba(255,107,107,.4)}
+.ps-right{display:flex;gap:18px;flex:0 0 auto;padding-bottom:3px}
+.mi{text-align:right}.ml{font-size:11px;color:var(--text-faint)}.mv{font-size:15px;font-weight:700;color:var(--text);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.chart-card{flex:1 1 auto;min-height:0;margin:0 clamp(10px,.9vw,16px) clamp(10px,.9vw,16px);border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg-2)}
+.chart-wrap{height:100%;width:100%}
+.chart-wrap iframe{width:100%;height:100%;border:0;display:block}
+.chart-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12px}
+
+/* 하단 스트립 */
+.bottom{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,.8vw,14px)}
+.bcard{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:clamp(8px,1vh,13px) clamp(11px,.9vw,16px);min-width:0;
+  background-image:linear-gradient(135deg,rgba(159,232,112,.04),transparent 70%)}
+.bc-h{font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2.5px 0;font-size:12px}
+.kv span{color:var(--text-dim);white-space:nowrap}
+.kv b{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kv .krw-sm{font-size:10px;color:var(--text-faint);font-weight:400;margin-left:5px}
+.bc-foot{font-size:10px;color:var(--text-faint);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── 세로(portrait): 세로 스택 + 스크롤 ── */
+@media (orientation:portrait){
+  html,body{overflow:auto}
+  .dash{height:auto;min-height:100dvh;padding:10px;gap:10px}
+  .topbar{flex-wrap:wrap;gap:10px}
+  .rebase-box{flex:1 1 auto}
+  .main{grid-template-columns:1fr}
+  .chain{min-height:0}
+  .chart-card{flex:0 0 auto;height:44vh;min-height:300px;max-height:460px}
+  .price-strip{flex-wrap:wrap;gap:8px}
+  .ps-right{gap:14px}
+  .bottom{grid-template-columns:repeat(2,1fr)}
+}
+@media (orientation:portrait) and (max-width:520px){
+  .bottom{grid-template-columns:1fr}
+  .pv{font-size:30px}
+  .rb-val{font-size:18px}
+}
+/* ── 가로(landscape)·낮은 화면(폰 가로): 16:9 2열 유지 + 스크롤 허용(클리핑 방지) ── */
+@media (orientation:landscape) and (max-height:560px){
+  html,body{overflow:auto}
+  .dash{height:auto;min-height:100dvh}
+  .topbar{flex-wrap:wrap;gap:8px}
+  .chart-card{flex:0 0 auto;height:60vh;min-height:200px}
+}
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</span>
+      <nav class="nav-tabs"><a class="nav-tab active" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a></nav>
+      <span class="sts"><span class="pulse"></span>Polygon · Anubis · 30초 · <b id="lastU">로딩중…</b></span>
+    </div>
+    <div class="rebase-box">
+      <div class="rb-item"><span class="rb-lab">다음 리베이스까지</span><span class="rb-val cd" id="rbCd">—</span></div>
+      <div class="rb-item"><span class="rb-lab">리베이스 / 에폭</span><span class="rb-val rate" id="rbRate">—</span></div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="chain">
+      <div class="price-strip">
+        <div class="ps-left">
+          <div><div class="hero-tag">⬡ Polygon · LGNS/USD</div><div class="pv" id="polyP">—</div></div>
+          <div><span class="pc" id="polyC">—</span> <span style="font-size:11px;color:var(--text-faint)">24h</span></div>
+          <div><span class="tax-badge" id="polyTax">매도세 —</span></div>
+        </div>
+        <div class="ps-right">
+          <div class="mi"><div class="ml">LGNS 풀</div><div class="mv" id="polyPoolL">—</div></div>
+          <div class="mi"><div class="ml">DAI 풀</div><div class="mv" id="polyPoolD">—</div></div>
+        </div>
+      </div>
+      <div class="chart-card"><div class="chart-wrap" id="polyChart"><div class="chart-empty">차트 로딩중…</div></div></div>
+    </section>
+
+    <section class="chain">
+      <div class="price-strip">
+        <div class="ps-left">
+          <div><div class="hero-tag">𓁢 Anubis · LGNS/USD</div><div class="pv" id="anuP">—</div></div>
+          <div><span class="badge-premium" id="prem">—</span></div>
+          <div><span class="tax-badge" id="anuTax">매도세 —</span></div>
+        </div>
+        <div class="ps-right">
+          <div class="mi"><div class="ml">LGNS 풀</div><div class="mv" id="anuR0">—</div></div>
+          <div class="mi"><div class="ml">DAI 풀</div><div class="mv" id="anuR1">—</div></div>
+        </div>
+      </div>
+      <div class="chart-card"><div class="chart-wrap" id="anuChart"><div class="chart-empty">차트 로딩중…</div></div></div>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <div class="bcard">
+      <div class="bc-h">💱 USD/KRW</div>
+      <div class="kv"><span>🟢 실시간 (업비트 USDT)</span><b class="cgl" id="fxL">—</b></div>
+      <div class="kv"><span>📋 공시 기준환율</span><b class="cdm" id="fxO">—</b></div>
+      <div class="bc-foot" id="fxSrcEl">소스 확인 중…</div>
+    </div>
+    <div class="bcard">
+      <div class="bc-h">💵 스테이블코인 / 김프</div>
+      <div class="kv"><span>🟢 업비트 USDT</span><b class="cgl" id="uU">—</b></div>
+      <div class="kv"><span>🟠 빗썸 USDT</span><b class="co" id="uB">—</b></div>
+      <div class="kv"><span>📊 김프</span><b id="KP">—</b></div>
+    </div>
+    <div class="bcard">
+      <div class="bc-h">🔄 LGNS 원화 (체인별)</div>
+      <div class="kv"><span>⬡ Polygon</span><b class="cg" id="LkPoly">—</b></div>
+      <div class="kv"><span>𓁢 Anubis</span><b class="ca" id="LkAnu">—</b></div>
+      <div class="bc-foot">업비트 USDT 환율 기준</div>
+    </div>
+    <div class="bcard">
+      <div class="bc-h">📈 메이저 코인</div>
+      <div class="kv"><span>₿ BTC</span><b id="btcU">—<span class="krw-sm" id="btcK"></span></b></div>
+      <div class="kv"><span>Ξ ETH</span><b id="ethU">—<span class="krw-sm" id="ethK"></span></b></div>
+      <div class="kv"><span>⬡ POL</span><b id="polU">—<span class="krw-sm" id="polK"></span></b></div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+"use strict";
+const S={poly:{price:null,ch24:null,poolLgns:null,poolDai:null},anu:{price:null,poolLgns:null,poolDai:null},
+  fx:{live:null,off:null,src:''},uGl:null,uUpC:null,uBi:null,
+  btc:{u:null,k:null,ch:null},eth:{u:null,k:null,ch:null},pol:{u:null,k:null,ch:null},
+  rebase:{rate:null,secondsLeft:null,builtAt:null}};
+const POLY_LGNS="0xeB51D9A39AD5EEF215dC0Bf39a8821ff804A0F01";
+const POLY_POOL="0x882df4B0fB50a229C3B4124EB18c759911485bFb";
+const ANU_RPC="https://rpc.anubispace.org";
+const ANU_POOL="0x32A4586797E3f561F41C0F47CA57eD08D64f3dC0";
+const ANU_LGNS="0x4D1D808a081FdAc440703b3765FC61f8028C06B8";
+const POLY_RPC=["https://polygon-rpc.com","https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org"];
+const STAKING="0x1964Ca90474b11FFD08af387b110ba6C96251Bfc";
+const SLGNS="0x99a57E6C8558BC6689f894e068733ADf83C19725";
+const POLY_DEXT="https://www.dextools.io/widget-chart/en/polygon/pe-light/0x882df4b0fb50a229c3b4124eb18c759911485bfb?theme=dark&chartType=1&chartResolution=1&drawingToolbars=false";
+const ANU_DEXT="https://www.dextools.io/widget-chart/en/anubis/pe-light/0x32a4586797e3f561f41c0f47ca57ed08d64f3dc0?theme=dark&chartType=1&chartResolution=1&drawingToolbars=false";
+const A={
+  dex:`https://api.dexscreener.com/tokens/v1/polygon/${POLY_LGNS}`,
+  gl:"https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum,polygon-ecosystem-token&vs_currencies=usd,krw&include_24hr_change=true",
+  up:"https://api.upbit.com/v1/ticker?markets=KRW-USDT,KRW-USDC,KRW-BTC,KRW-ETH,KRW-POL",
+  bi:"https://api.bithumb.com/public/ticker/USDT_KRW"
+};
+const FX_CHAIN=[
+  {url:"https://api.exchangerate.host/latest?base=USD&symbols=KRW",parse:d=>d?.rates?.KRW,name:"exchangerate.host"},
+  {url:"https://api.exchangeratesapi.io/latest?base=USD&symbols=KRW",parse:d=>d?.rates?.KRW,name:"exchangeratesapi.io"},
+  {url:"https://api.manana.kr/exchange/rate/KRW/KRW,USD.json",parse:d=>{if(Array.isArray(d)){const u=d.find(x=>x.name==='USDKRW=X');return u?.rate;}return null;},name:"manana.kr"},
+  {url:"https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json",parse:d=>d?.usd?.krw,name:"fawazahmed0"},
+  {url:"https://open.er-api.com/v6/latest/USD",parse:d=>d?.rates?.KRW,name:"open.er-api.com"},
+];
+
+function $(id){return document.getElementById(id)}
+function fN(n,d=2){return n==null||isNaN(n)?'—':Number(n).toLocaleString('ko-KR',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function f$(n,d=2){return n==null||isNaN(n)?'—':'$'+fN(n,d)}
+function fW(n){return n==null||isNaN(n)?'—':'₩'+Math.round(n).toLocaleString('ko-KR')}
+function fP(n){if(n==null||isNaN(n))return'—';return(n>=0?'+':'')+fN(n)+'%'}
+function fC(n){return n==null||isNaN(n)?'var(--text-dim)':n>=0?'var(--neon)':'var(--danger)'}
+function fNum(n){if(n==null||isNaN(n))return'—';if(n>=1e9)return fN(n/1e9,2)+'B';if(n>=1e6)return fN(n/1e6,2)+'M';if(n>=1e3)return fN(n/1e3,1)+'K';return fN(n,0)}
+function premiumPct(p,a){return (p&&a)?((a-p)/p)*100:null;}
+
+async function fetchAnubis(){
+  try{
+    const body={jsonrpc:'2.0',id:1,method:'eth_call',params:[{to:ANU_POOL,data:'0x0902f1ac'},'latest']};
+    const r=await fetch(ANU_RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+    const j=await r.json();if(!j.result)return;
+    const hex=j.result.slice(2);
+    const r0=BigInt('0x'+hex.slice(0,64)),r1=BigInt('0x'+hex.slice(64,128));
+    S.anu.poolLgns=Number(r0)/1e9;S.anu.poolDai=Number(r1)/1e18;
+    S.anu.price=(Number(r1)/Number(r0))*1e-9;
+  }catch(e){console.warn('anubis',e);}
+}
+async function polyRpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
+function rpcWords(hex){const h=hex.startsWith('0x')?hex.slice(2):hex;const o=[];for(let i=0;i<h.length;i+=64)o.push(BigInt('0x'+(h.slice(i,i+64)||'0')));return o;}
+async function fetchRebase(){
+  for(const url of POLY_RPC){
+    try{
+      const blockHex=await polyRpc(url,'eth_blockNumber',[]);const block=parseInt(blockHex,16);
+      const ew=rpcWords(await polyRpc(url,'eth_call',[{to:STAKING,data:'0x900cf0cf'},'latest']));
+      if(ew.length<4)throw new Error('epoch');
+      const endBlock=Number(ew[2]),distribute=ew[3];
+      let staked;
+      try{staked=BigInt(await polyRpc(url,'eth_call',[{to:SLGNS,data:'0x9358928b'},'latest']));if(staked===0n)throw new Error('0');}
+      catch(e){staked=BigInt(await polyRpc(url,'eth_call',[{to:SLGNS,data:'0x18160ddd'},'latest']));}
+      const bn=await polyRpc(url,'eth_getBlockByNumber',[blockHex,false]);
+      const bo=await polyRpc(url,'eth_getBlockByNumber',['0x'+(block-120).toString(16),false]);
+      let bt=(parseInt(bn.timestamp,16)-parseInt(bo.timestamp,16))/120;if(!(bt>=0.5&&bt<=10))bt=2.1;
+      S.rebase={rate:staked>0n?Number(distribute)/Number(staked):0,secondsLeft:(endBlock-block)*bt,builtAt:Math.floor(Date.now()/1000)};
+      return;
+    }catch(e){}
+  }
+}
+
+// ── 매도세금(sell tax) 라이브 read: 1−(1−feeRatio)(1−extraFeeRatio), 분모 1e5 ──
+async function readTaxRatios(rpcs, token){
+  for(const url of rpcs){
+    try{
+      const fee=BigInt(await polyRpc(url,'eth_call',[{to:token,data:'0x41744dd4'},'latest'])); // feeRatio()
+      let xf=0n; try{const x=await polyRpc(url,'eth_call',[{to:token,data:'0x3c336ff4'},'latest']); if(x&&x!=='0x') xf=BigInt(x);}catch(e){}
+      return {fee:Number(fee)/1e5, xf:Number(xf)/1e5};
+    }catch(e){}
+  }
+  return null;
+}
+async function fetchSellTax(){
+  try{const p=await readTaxRatios(POLY_RPC,POLY_LGNS); if(p)S.poly.sellTax=(1-(1-p.fee)*(1-p.xf))*100;}catch(e){}
+  try{const a=await readTaxRatios([ANU_RPC],ANU_LGNS); if(a)S.anu.sellTax=(1-(1-a.fee)*(1-a.xf))*100;}catch(e){}
+}
+function setTax(id,t){const el=$(id);if(!el)return;if(t==null){el.textContent='매도세 —';el.className='tax-badge';return;}el.textContent='매도세 '+fN(t,2)+'%';el.className='tax-badge '+(t>=15?'hi':'lo');}
+function renderTax(){setTax('polyTax',S.poly.sellTax);setTax('anuTax',S.anu.sellTax);}
+
+let chartsMounted=false;
+function mountCharts(){if(chartsMounted)return;chartsMounted=true;
+  const p=$('polyChart'),a=$('anuChart');
+  if(p)p.innerHTML='<iframe src="'+POLY_DEXT+'" loading="lazy" title="Polygon LGNS/DAI"></iframe>';
+  if(a)a.innerHTML='<iframe src="'+ANU_DEXT+'" loading="lazy" title="Anubis LGNS/DAI"></iframe>';}
+
+async function go(){
+  const [dR,gR,uR,bR]=await Promise.allSettled([
+    fetch(A.dex).then(r=>r.json()),fetch(A.gl).then(r=>r.json()),
+    fetch(A.up).then(r=>r.json()),fetch(A.bi).then(r=>r.json())
+  ]);
+  if(dR.status==='fulfilled'&&dR.value){const a=dR.value,p=Array.isArray(a)?(a.find(x=>x.quoteToken?.symbol==='DAI'&&x.dexId==='quickswap')||a[0]):null;
+    if(p){S.poly.price=parseFloat(p.priceUsd);S.poly.ch24=p.priceChange?.h24??null;S.poly.poolDai=p.liquidity?.quote??null;S.poly.poolLgns=p.liquidity?.base??null;}}
+  S.fx.src='';
+  for(const fx of FX_CHAIN){try{const r=await fetch(fx.url);const d=await r.json();const v=fx.parse(d);if(v&&v>1000&&v<2000){S.fx.off=v;S.fx.src=fx.name;break;}}catch(e){}}
+  if(gR.status==='fulfilled'&&gR.value){const g=gR.value;
+    if(g.tether?.krw)S.uGl=g.tether.krw;
+    if(g.bitcoin)S.btc={u:g.bitcoin.usd,k:g.bitcoin.krw,ch:g.bitcoin.usd_24h_change};
+    if(g.ethereum)S.eth={u:g.ethereum.usd,k:g.ethereum.krw,ch:g.ethereum.usd_24h_change};
+    if(g['polygon-ecosystem-token']){const pt=g['polygon-ecosystem-token'];S.pol={u:pt.usd,k:pt.krw,ch:pt.usd_24h_change};}}
+  if(uR.status==='fulfilled'&&Array.isArray(uR.value)){uR.value.forEach(t=>{
+    if(t.market==='KRW-USDT')S.fx.live=t.trade_price;if(t.market==='KRW-USDC')S.uUpC=t.trade_price;});}
+  if(bR.status==='fulfilled'&&bR.value?.data?.closing_price)S.uBi=parseFloat(bR.value.data.closing_price);
+  await fetchAnubis();
+  $('lastU').textContent=new Date().toLocaleTimeString('ko-KR');
+  uD();
+  fetchRebase().then(renderRebase).catch(function(){});
+  fetchSellTax().then(renderTax).catch(function(){});
+}
+
+function uD(){
+  $('polyP').textContent=S.poly.price?f$(S.poly.price):'—';
+  const pc=$('polyC');pc.textContent=fP(S.poly.ch24);pc.style.color=fC(S.poly.ch24);
+  $('polyPoolL').textContent=S.poly.poolLgns!=null?fNum(S.poly.poolLgns)+' LGNS':'—';
+  $('polyPoolD').textContent=S.poly.poolDai!=null?fNum(S.poly.poolDai)+' DAI':'—';
+  $('anuP').textContent=S.anu.price?f$(S.anu.price):'—';
+  const pr=premiumPct(S.poly.price,S.anu.price);const pe=$('prem');
+  if(pr==null){pe.textContent='—';pe.className='badge-premium';}else{pe.textContent='Polygon 대비 '+(pr>=0?'▲':'▼')+' '+fP(pr);pe.className='badge-premium '+(pr>=0?'up':'down');}
+  $('anuR0').textContent=S.anu.poolLgns!=null?fNum(S.anu.poolLgns)+' LGNS':'—';
+  $('anuR1').textContent=S.anu.poolDai!=null?fNum(S.anu.poolDai)+' DAI':'—';
+  $('fxL').textContent=S.fx.live?fN(S.fx.live,0):'—';
+  $('fxO').textContent=S.fx.off?fN(S.fx.off,2):'—';
+  $('fxSrcEl').textContent=S.fx.src?'📡 '+S.fx.src:'⚠️ 소스 연결 실패';
+  $('uU').textContent=S.fx.live?fW(S.fx.live):'—';$('uB').textContent=S.uBi?fW(S.uBi):'—';
+  const kp=S.fx.live&&S.uGl?((S.fx.live-S.uGl)/S.uGl)*100:null;const ke=$('KP');ke.textContent=fP(kp);ke.style.color=fC(kp);
+  $('LkPoly').textContent=S.poly.price&&S.fx.live?fW(S.poly.price*S.fx.live):'—';
+  $('LkAnu').textContent=S.anu.price&&S.fx.live?fW(S.anu.price*S.fx.live):'—';
+  sC('btc',S.btc);sC('eth',S.eth);sC('pol',S.pol);
+  renderTax();
+}
+function sC(id,d){if(!d)return;$(id+'U').firstChild&&($(id+'U').firstChild.textContent=d.u?f$(d.u,d.u>=100?0:2)+' ':'— ');
+  const k=$(id+'K');if(k)k.textContent=d.k?fW(d.k):'';}
+
+function renderRebase(){const r=S.rebase;if(!r||r.rate==null)return;$('rbRate').textContent=(r.rate>=0?'+':'')+(r.rate*100).toFixed(4)+'%';tickRebase();}
+function tickRebase(){const r=S.rebase,el=$('rbCd');if(!el||!r||r.secondsLeft==null||!r.builtAt)return;let left=r.secondsLeft-(Math.floor(Date.now()/1000)-r.builtAt);if(left<=0){el.textContent='임박';return;}const h=Math.floor(left/3600),m=Math.floor((left%3600)/60),s=Math.floor(left%60);el.textContent=(h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
+
+setInterval(go,30000);
+setInterval(tickRebase,1000);
+go();
+setTimeout(mountCharts,800);
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+<div class="signature">SpaceEchoBoy</div>
+</body>
+</html>
