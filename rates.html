@@ -116,7 +116,7 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
     <div class="card">
       <div class="ch">
         <div><div class="ct">⬡ Polygon 137</div><div class="cs" id="polyMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
-        <div class="badges"><span class="bdg" id="polyTax">매도세 —</span><button class="ev" data-ev="tax:poly" title="매도세 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">터빈세 —</span><button class="ev" data-ev="turb:poly" title="터빈 컨트랙트">🔗</button></div>
+        <div class="badges"><span class="bdg" id="polyTax">Sell Tax —</span><button class="ev" data-ev="tax:poly" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">Turbine Fee —</span><button class="ev" data-ev="turb:poly" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
     </div>
@@ -124,7 +124,7 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
     <div class="card">
       <div class="ch">
         <div><div class="ct">𓂀 Anubis 6714</div><div class="cs" id="anuMeta">RocketSwap 시세 · 6h rebase epoch</div></div>
-        <div class="badges"><span class="bdg" id="anuTax">매도세 —</span><button class="ev" data-ev="tax:anu" title="매도세 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">터빈세 —</span><button class="ev" data-ev="turb:anu" title="터빈 컨트랙트">🔗</button></div>
+        <div class="badges"><span class="bdg" id="anuTax">Sell Tax —</span><button class="ev" data-ev="tax:anu" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">Turbine Fee —</span><button class="ev" data-ev="turb:anu" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
     </div>
@@ -132,9 +132,9 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
 
   <div class="card"><div class="cb">
     <div class="foot">
-      <b>이율 3종</b> — ① 일반 rebase(복리, 체인 단일·6h epoch ×4/day) · ② 장기 base interest(락업 원금에 적용되는 복리 = 체인 rebase, 별도 율 없음) · ③ extra interest(단리, 상품 전용·12h epoch ×2/day, 터빈 입력).<br>
-      <b>매도세·터빈세</b>는 매 새로고침 온체인 실측(라이브).<br>
-      ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·매도세·터빈세는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 첫 표본은 세션 baseline(2026-06-15 교차검증)으로 표시 후 라이브 델타로 자기수정. read-only.
+      <b>이율 3종</b> — ① 일반 rebase(복리, 체인 단일·6h epoch ×4/day) · ② 장기 base interest(락업 원금에 적용되는 복리 = 체인 rebase, 별도 율 없음) · ③ extra interest(단리, 상품 전용·12h epoch ×2/day, Turbine 입력).<br>
+      <b>Sell Tax·Turbine Fee</b>는 매 새로고침 온체인 실측(라이브).<br>
+      ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·Sell Tax·Turbine Fee는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 첫 표본은 세션 baseline(2026-06-15 교차검증)으로 표시 후 라이브 델타로 자기수정. read-only.
     </div>
   </div></div>
 
@@ -229,7 +229,7 @@ function vals(key){
   if(key.indexOf("reb:")===0){ const c=cg(key); if(c&&typeof c.idx==="number") return "인덱스 "+c.idx.toFixed(2)+" · epoch "+c.ep; }
   if(key.indexOf("extra:")===0){ const c=cg(key); if(c&&typeof c.gi==="number") return "globalIndex "+c.gi.toLocaleString("en-US")+" · epoch "+c.ep; }
   const m=key.match(/^(tax|turb):(poly|anu)$/);
-  if(m){ const v=m[1]==="tax"?S[m[2]].sellTax:S[m[2]].turbFee; if(v!=null&&!isNaN(v)) return (m[1]==="tax"?"매도세 ":"터빈세 φ ")+(v*100).toFixed(2)+"%"; }
+  if(m){ const v=m[1]==="tax"?S[m[2]].sellTax:S[m[2]].turbFee; if(v!=null&&!isNaN(v)) return (m[1]==="tax"?"Sell Tax ":"Turbine Fee ")+(v*100).toFixed(2)+"%"; }
   return null;
 }
 function fillEvRow(key){
@@ -410,9 +410,9 @@ function renderChain(chain){
   });
   $(chain==='poly'?'polyBody':'anuBody').innerHTML=html;
   // badges
-  setBadge(chain==='poly'?'polyTax':'anuTax','매도세',(chain==='poly'?S.poly.sellTax:S.anu.sellTax)*100,'%',v=>v>=15?'hi':(v>=50?'hi':'warn'));
+  setBadge(chain==='poly'?'polyTax':'anuTax','Sell Tax',(chain==='poly'?S.poly.sellTax:S.anu.sellTax)*100,'%',v=>v>=15?'hi':(v>=50?'hi':'warn'));
   const tf=(chain==='poly'?S.poly.turbFee:S.anu.turbFee)*100;
-  setBadge(chain==='poly'?'polyTurb':'anuTurb','터빈세',tf,'%',v=>v>=10?'hi':(v>=1?'warn':'ok'));
+  setBadge(chain==='poly'?'polyTurb':'anuTurb','Turbine Fee',tf,'%',v=>v>=10?'hi':(v>=1?'warn':'ok'));
 }
 function setBadge(id,lab,v,unit,cls){const el=$(id);if(!el)return;if(v==null||isNaN(v)){el.textContent=lab+' —';el.className='bdg';return;}el.textContent=lab+' '+fN(v,2)+unit;el.className='bdg '+cls(v);}
 
