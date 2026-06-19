@@ -195,7 +195,7 @@ const POLY_POOL="0x882df4B0fB50a229C3B4124EB18c759911485bFb";
 const ANU_RPC="https://rpc.anubispace.org";
 const ANU_POOL="0x32A4586797E3f561F41C0F47CA57eD08D64f3dC0";
 const ANU_LGNS="0x4D1D808a081FdAc440703b3765FC61f8028C06B8";
-const POLY_RPC=["https://polygon-rpc.com","https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org"];
+const POLY_RPC=["https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org","https://1rpc.io/matic","https://polygon.llamarpc.com"];
 const STAKING="0x1964Ca90474b11FFD08af387b110ba6C96251Bfc";
 const SLGNS="0x99a57E6C8558BC6689f894e068733ADf83C19725";
 const POLY_DEXT="https://www.dextools.io/widget-chart/en/polygon/pe-light/0x882df4b0fb50a229c3b4124eb18c759911485bfb?theme=dark&chartType=1&chartResolution=1&drawingToolbars=false";
@@ -248,7 +248,7 @@ async function fetchRebase(){
       catch(e){staked=BigInt(await polyRpc(url,'eth_call',[{to:SLGNS,data:'0x18160ddd'},'latest']));}
       const bn=await polyRpc(url,'eth_getBlockByNumber',[blockHex,false]);
       const bo=await polyRpc(url,'eth_getBlockByNumber',['0x'+(block-120).toString(16),false]);
-      let bt=(parseInt(bn.timestamp,16)-parseInt(bo.timestamp,16))/120;if(!(bt>=0.5&&bt<=10))bt=2.1;
+      let bt=(parseInt(bn.timestamp,16)-parseInt(bo.timestamp,16))/120;if(!(bt>=0.3&&bt<=10))bt=1.5;
       S.rebase={rate:staked>0n?Number(distribute)/Number(staked):0,secondsLeft:(endBlock-block)*bt,builtAt:Math.floor(Date.now()/1000)};
       return;
     }catch(e){}
