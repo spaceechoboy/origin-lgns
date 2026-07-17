@@ -134,7 +134,7 @@ body{overflow:hidden;display:flex;flex-direction:column}
     <!-- Polygon -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">⬡ Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span></div></div>
+        <div><div class="ct">Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span></div></div>
         <div class="badges"><span class="bdg" id="polyTax">Sell Tax —</span><button class="ev" data-ev="tax:poly" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">Turbine Fee —</span><button class="ev" data-ev="turb:poly" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
@@ -142,7 +142,7 @@ body{overflow:hidden;display:flex;flex-direction:column}
     <!-- Anubis -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">𓂀 Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span></div></div>
+        <div><div class="ct">Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span></div></div>
         <div class="badges"><span class="bdg" id="anuTax">Sell Tax —</span><button class="ev" data-ev="tax:anu" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">Turbine Fee —</span><button class="ev" data-ev="turb:anu" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
@@ -151,7 +151,8 @@ body{overflow:hidden;display:flex;flex-direction:column}
 
   <div class="card"><div class="cb">
     <div class="foot">
-      <b>이율 3종</b> — ① 일반 rebase(복리, 체인 단일·6h epoch ×4/day) · ② 장기 base interest(락업 원금에 적용되는 복리 = 체인 rebase, 별도 율 없음) · ③ extra interest(단리, 상품 전용·12h epoch ×2/day, Turbine 입력).<br>
+      <b>이율 2종</b> — ① 일반 리베이스(복리, 체인 단일·6h epoch ×4/day — 장기 락업 원금에도 동일 적용, 별도 '장기 base' 율은 존재하지 않음) · ② Extra interest(단리, 상품 전용·12h epoch ×2/day, Turbine 입력).<br>
+      <b>③ 일일 합산</b> = ①+② 단순 합 · <b>④ 단순 계산(한 달·1년)</b> = 리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). <b>추가보상을 수령해 일반 스테이킹으로 전환(복리 편입)하면 실제 수익률은 이 값보다 훨씬 커진다.</b><br>
       <b>Sell Tax·Turbine Fee</b>는 매 새로고침 온체인 실측(라이브).<br>
       ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·Sell Tax·Turbine Fee는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 첫 표본은 세션 baseline(2026-06-15 교차검증)으로 표시 후 라이브 델타로 자기수정. read-only.
     </div>
@@ -338,6 +339,8 @@ function spotFromReserves(chain,r0,r1){ return chain==='poly' ? (Number(r0)/1e18
 function recovery(t,phi){ return 2-(1+phi)/(1-t); }                 // ≤0 = 킬스위치
 function netEff(extraDay,rec){ return extraDay*Math.max(rec,0)*1; } // 음수 회수는 0으로 클램프(킬스위치 표시)
 function rawNet(extraDay,rec){ return extraDay*rec; }
+function rebCompound(perEp,days){ return (Math.pow(1+perEp/100,CFG.REB_EP_PER_DAY*days)-1)*100; } // 리베이스 에폭 복리 누적(%)
+function simpleYield(rebPerEp,extraPerDay,days){ return rebCompound(rebPerEp,days)+extraPerDay*days; } // 복리 + extra 단리(수령 전 명목, %)
 
 function runSelfTests(){
   let ok=true; const chk=(c,m)=>{if(!c){ok=false;console.error('SELFTEST FAIL:',m);}};
@@ -347,6 +350,9 @@ function runSelfTests(){
   chk(recovery(0.55,0)<0,'killswitch >50% negative');
   chk(Math.abs(rawNet(0.24,recovery(0.05,0.003))-0.22661)<1e-3,'net poly360');
   chk(Math.abs(rawNet(0.39,recovery(0.2875,0.05))-0.20526)<1e-3,'net anu600 φ5%');
+  chk(Math.abs(rebCompound(0.15,30)-19.7056)<0.01,'rebase compound 30d');
+  chk(Math.abs(rebCompound(0.15,365)-792.07)<0.5,'rebase compound 365d');
+  chk(Math.abs(simpleYield(0.15,0.30,30)-28.7056)<0.02,'simple yield 30d');
   chk(Math.abs(spotFromReserves('poly',145845869810072400000000000n,55998319335534200n)-2.6045)<0.01,'poly spot');
   chk(Math.abs(spotFromReserves('anu',36361161864700000n,147357506548200000000000000n)-4.0526)<0.01,'anu spot');
   chk(toHex32(1000000000)==='000000000000000000000000000000000000000000000000000000003b9aca00','encode 1e9');
@@ -446,11 +452,14 @@ function renderChain(chain){
   let html='';
   prods.forEach(p=>{
     const ex=S.extra[p.k];
+    const sumDay=reb.perDay+ex.perDay;
+    const m30=simpleYield(reb.perEp,ex.perDay,30), y365=simpleYield(reb.perEp,ex.perDay,365);
     html+=`<div class="prod">
       <div class="prod-h"><span class="prod-t">${p.k.endsWith('360')?'360일 LONG':'600일 LONG'}</span><span class="prod-meta">${p.term}</span></div>
-      ${rateRow('① 일반 rebase (복리)',reb.perDay,reb.perEp,6,'',sttag(reb.status),'reb:'+chain)}
-      ${rateRow('② 장기 base interest <span class="eqtag">=rebase</span>',reb.perDay,reb.perEp,6,'','')}
-      ${rateRow('③ extra interest (단리)',ex.perDay,ex.perEp,12,'hot',sttag(ex.status),'extra:'+p.k)}
+      ${rateRow('① 일반 리베이스 (복리)',reb.perDay,reb.perEp,6,'',sttag(reb.status),'reb:'+chain)}
+      ${rateRow('② Extra interest (단리)',ex.perDay,ex.perEp,12,'hot',sttag(ex.status),'extra:'+p.k)}
+      <div class="rrow"><span class="rl">③ 일일 합산 (①+②)</span><span class="rv hot">${pct(sumDay,4)}/day<span class="sub">리베이스+추가보상</span></span></div>
+      <div class="rrow" title="리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). 추가보상을 수령해 일반 스테이킹으로 전환하면 실제 수익률은 이보다 훨씬 커짐"><span class="rl">④ 단순 계산 <span class="eqtag">한 달·1년</span></span><span class="rv">+${fN(m30,1)}% · +${fN(y365,0)}%<span class="sub">30d·365d</span></span></div>
     </div>`;
   });
   $(chain==='poly'?'polyBody':'anuBody').innerHTML=html;
