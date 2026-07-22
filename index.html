@@ -42,12 +42,15 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .logo{font-size:clamp(18px,1.9vw,26px);font-weight:900;color:var(--neon);text-shadow:0 0 24px rgba(159,232,112,.4)}
 .sts{font-size:12px;color:var(--text-faint)}.sts b{color:var(--neon)}
-.rebase-box{display:flex;gap:10px}
+.rebase-box{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .rb-item{display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding:7px 14px;border:1px solid var(--border-strong);border-radius:11px;background:rgba(159,232,112,.06);box-shadow:0 0 24px rgba(159,232,112,.06)}
 .rb-lab{font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap}
 .rb-val{font-family:var(--mono);font-weight:800;font-size:clamp(16px,1.5vw,22px);font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap}
 .rb-val.cd{color:var(--info);text-shadow:0 0 14px rgba(127,212,232,.3)}
 .rb-val.rate{color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.4)}
+.rb-val.prem{color:var(--text-dim)}
+.rb-val.prem.up{color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.4)}
+.rb-val.prem.down{color:var(--danger);text-shadow:0 0 16px rgba(255,107,107,.35)}
 
 /* 본문 2열 (체인) */
 .main{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1vw,16px);min-height:0}
@@ -58,8 +61,6 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .hero-tag{font-size:13px;color:var(--text-dim);font-weight:600}
 .pv{font-family:var(--mono);font-size:clamp(30px,3.4vw,52px);font-weight:900;color:#fff;line-height:1;text-shadow:0 0 24px rgba(159,232,112,.25)}
 .pc{font-size:15px;font-weight:700}
-.badge-premium{display:inline-flex;align-items:center;gap:5px;font:700 14px/1 var(--mono);padding:5px 12px;border-radius:100px;border:1px solid var(--border-strong)}
-.badge-premium.up{color:var(--neon);background:rgba(159,232,112,.1)}.badge-premium.down{color:var(--danger);background:rgba(255,107,107,.1)}
 .tax-badge{display:inline-flex;align-items:center;font:700 12px/1 var(--mono);padding:4px 9px;border-radius:100px;border:1px solid var(--border-strong);white-space:nowrap;color:var(--text-dim)}
 .tax-badge.lo{color:var(--warn);background:rgba(255,184,77,.10);border-color:rgba(255,184,77,.35)}
 .tax-badge.hi{color:var(--danger);background:rgba(255,107,107,.12);border-color:rgba(255,107,107,.4)}
@@ -81,6 +82,33 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .kv .krw-sm{font-size:10px;color:var(--text-faint);font-weight:400;margin-left:5px}
 .bc-foot{font-size:10px;color:var(--text-faint);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ── 홍보 카드 (Origin Direct 무료 도구) — 회전 네온 보더가 시그니처 ── */
+@property --pang{syntax:'<angle>';initial-value:0deg;inherits:false}
+.promo{flex:0 0 auto;position:relative;display:flex;align-items:center;gap:clamp(10px,1vw,18px);flex-wrap:wrap;
+  padding:clamp(11px,1.5vh,16px) clamp(14px,1.2vw,22px);border-radius:14px;text-decoration:none;color:var(--text);
+  background:linear-gradient(120deg,rgba(159,232,112,.12),rgba(159,232,112,.03) 40%,rgba(127,212,232,.08)),var(--bg-card-2);
+  box-shadow:0 0 34px rgba(159,232,112,.10);transition:box-shadow .25s,transform .25s}
+.promo::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;
+  background:conic-gradient(from var(--pang),var(--neon) 0%,rgba(159,232,112,.12) 25%,var(--info) 50%,rgba(159,232,112,.12) 75%,var(--neon) 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
+  animation:promoSpin 5s linear infinite;pointer-events:none}
+@keyframes promoSpin{to{--pang:360deg}}
+.promo:hover{box-shadow:0 0 48px rgba(159,232,112,.22);transform:translateY(-1px)}
+.promo:focus-visible{outline:2px solid var(--neon-bright);outline-offset:3px}
+.promo-new{display:inline-flex;align-items:center;gap:6px;font:800 11px/1 var(--mono);letter-spacing:.1em;color:var(--bg-0);
+  background:var(--neon);padding:6px 11px;border-radius:100px;box-shadow:0 0 20px rgba(159,232,112,.55);flex:0 0 auto}
+.promo-dot{width:6px;height:6px;border-radius:50%;background:var(--bg-0);animation:pulse 2s ease-in-out infinite}
+.promo-body{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.promo-title{font-size:clamp(14px,1.3vw,16px);font-weight:800;color:#fff;letter-spacing:-.01em}
+.promo-desc{font-size:12px;color:var(--text-dim);line-height:1.45}
+.promo-desc b{color:var(--neon-bright);font-weight:700}
+.promo-cta{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--bg-0);white-space:nowrap;
+  background:linear-gradient(135deg,var(--neon-bright),var(--neon));padding:10px 18px;border-radius:10px;
+  box-shadow:0 0 22px rgba(159,232,112,.35);transition:box-shadow .25s}
+.promo:hover .promo-cta{box-shadow:0 0 30px rgba(159,232,112,.6)}
+@media (prefers-reduced-motion:reduce){.promo::before{animation:none}.promo-dot{animation:none}.promo:hover{transform:none}}
+
 /* ── 세로(portrait): 세로 스택 + 스크롤 ── */
 @media (orientation:portrait){
   html,body{overflow:auto}
@@ -98,6 +126,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   .bottom{grid-template-columns:1fr}
   .pv{font-size:30px}
   .rb-val{font-size:18px}
+  .promo-cta{flex:1 1 100%;text-align:center}
 }
 /* ── 가로(landscape)·낮은 화면(폰 가로): 16:9 2열 유지 + 스크롤 허용(클리핑 방지) ── */
 @media (orientation:landscape) and (max-height:560px){
@@ -118,6 +147,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
       <span class="sts"><span class="pulse"></span>Polygon · Anubis · 30초 · <b id="lastU">로딩중…</b></span>
     </div>
     <div class="rebase-box">
+      <div class="rb-item"><span class="rb-lab">폴리곤 대비 격차</span><span class="rb-val prem" id="prem">—</span></div>
       <div class="rb-item"><span class="rb-lab">다음 리베이스까지</span><span class="rb-val cd" id="rbCd">—</span></div>
       <div class="rb-item"><span class="rb-lab">리베이스 / 에폭</span><span class="rb-val rate" id="rbRate">—</span></div>
     </div>
@@ -143,7 +173,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
       <div class="price-strip">
         <div class="ps-left">
           <div><div class="hero-tag">𓁢 Anubis · LGNS/USD</div><div class="pv" id="anuP">—</div></div>
-          <div><span class="badge-premium" id="prem">—</span></div>
+          <div><span class="pc" id="anuC">—</span> <span style="font-size:11px;color:var(--text-faint)">24h</span></div>
           <div><span class="tax-badge" id="anuTax">매도세 —</span></div>
         </div>
         <div class="ps-right">
@@ -182,11 +212,20 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
     </div>
   </footer>
 
+  <a class="promo" href="https://awakeorigin.direct/tools/" target="_blank" rel="noopener" aria-label="Origin Direct 무료 편의 도구 둘러보기 (새 창)">
+    <span class="promo-new"><span class="promo-dot"></span>NEW</span>
+    <span class="promo-body">
+      <b class="promo-title">새로운 무료 도구가 출시됐어요!</b>
+      <span class="promo-desc">일반·장기 스테이킹 계산기 · 소각채권 계산기 · 내 자산 분석 · 실시간 시세·이율 — <b>awakeorigin.direct</b>에서 전부 무료</span>
+    </span>
+    <span class="promo-cta">무료 도구 둘러보기 →</span>
+  </a>
+
 </div>
 
 <script>
 "use strict";
-const S={poly:{price:null,ch24:null,poolLgns:null,poolDai:null},anu:{price:null,poolLgns:null,poolDai:null},
+const S={poly:{price:null,ch24:null,poolLgns:null,poolDai:null},anu:{price:null,ch24:null,poolLgns:null,poolDai:null},
   fx:{live:null,off:null,src:''},uGl:null,uUpC:null,uBi:null,
   btc:{u:null,k:null,ch:null},eth:{u:null,k:null,ch:null},pol:{u:null,k:null,ch:null},
   rebase:{rate:null,secondsLeft:null,builtAt:null}};
@@ -198,8 +237,8 @@ const ANU_LGNS="0x4D1D808a081FdAc440703b3765FC61f8028C06B8";
 const POLY_RPC=["https://polygon-bor-rpc.publicnode.com","https://polygon.drpc.org","https://1rpc.io/matic","https://polygon.llamarpc.com"];
 const STAKING="0x1964Ca90474b11FFD08af387b110ba6C96251Bfc";
 const SLGNS="0x99a57E6C8558BC6689f894e068733ADf83C19725";
-const POLY_DEXT="https://www.dextools.io/widget-chart/en/polygon/pe-light/0x882df4b0fb50a229c3b4124eb18c759911485bfb?theme=dark&chartType=1&chartResolution=1&drawingToolbars=false&chartInUsd=true";
-const ANU_DEXT="https://www.dextools.io/widget-chart/en/anubis/pe-light/0x32a4586797e3f561f41c0f47ca57ed08d64f3dc0?theme=dark&chartType=1&chartResolution=1&drawingToolbars=false&chartInUsd=true";
+const POLY_DEXT="https://www.dextools.io/widget-chart/en/polygon/pe-light/0x882df4b0fb50a229c3b4124eb18c759911485bfb?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&chartInUsd=true";
+const ANU_DEXT="https://www.dextools.io/widget-chart/en/anubis/pe-light/0x32a4586797e3f561f41c0f47ca57ed08d64f3dc0?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&chartInUsd=true";
 const A={
   dex:`https://api.dexscreener.com/tokens/v1/polygon/${POLY_LGNS}`,
   gl:"https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum,polygon-ecosystem-token&vs_currencies=usd,krw&include_24hr_change=true",
@@ -233,6 +272,31 @@ async function fetchAnubis(){
     S.anu.poolLgns=Number(r0)/1e9;S.anu.poolDai=Number(r1)/1e18;
     S.anu.price=(Number(r1)/Number(r0))*1e-9;
   }catch(e){console.warn('anubis',e);}
+}
+
+// ── 아누비스 24h 변동 기준가 — DexScreener 등 무료 API가 Anubis 체인 미지원(실측: 빈 배열).
+//    아카이브 RPC로 '24h 전 블록'의 getReserves를 직접 읽는다(현재가와 동일 소스 = LP 리저브 직독).
+let anuBase=null; // {price, ts(기준 블록 실제시각), at(수집시각)}
+async function anuRpc(method,params){const r=await fetch(ANU_RPC,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
+async function fetchAnuBase(){
+  try{
+    const target=Math.floor(Date.now()/1000)-86400;
+    const latest=await anuRpc('eth_getBlockByNumber',['latest',false]);
+    const lNum=parseInt(latest.number,16), lTs=parseInt(latest.timestamp,16);
+    const pNum=Math.max(1,lNum-5000);
+    const probe=await anuRpc('eth_getBlockByNumber',['0x'+pNum.toString(16),false]);
+    let bt=(lTs-parseInt(probe.timestamp,16))/(lNum-pNum); if(!(bt>0.2&&bt<15))bt=3;
+    let est=Math.max(1,lNum-Math.round((lTs-target)/bt)), ts=null;
+    for(let i=0;i<3;i++){ // 추정 → 실제 timestamp 확인 → 오차 ±15분 이내까지 보정(최대 3회)
+      const b=await anuRpc('eth_getBlockByNumber',['0x'+est.toString(16),false]);
+      ts=parseInt(b.timestamp,16);
+      if(Math.abs(ts-target)<=900)break;
+      est=Math.max(1,est+Math.round((target-ts)/bt));
+    }
+    const hex=(await anuRpc('eth_call',[{to:ANU_POOL,data:'0x0902f1ac'},'0x'+est.toString(16)])).slice(2);
+    const r0=BigInt('0x'+hex.slice(0,64)),r1=BigInt('0x'+hex.slice(64,128));
+    if(r0>0n)anuBase={price:(Number(r1)/Number(r0))*1e-9,ts,at:Date.now()};
+  }catch(e){console.warn('anu 24h base',e);}
 }
 async function polyRpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
 function rpcWords(hex){const h=hex.startsWith('0x')?hex.slice(2):hex;const o=[];for(let i=0;i<h.length;i+=64)o.push(BigInt('0x'+(h.slice(i,i+64)||'0')));return o;}
@@ -309,8 +373,10 @@ function uD(){
   $('polyPoolL').textContent=S.poly.poolLgns!=null?fNum(S.poly.poolLgns)+' LGNS':'—';
   $('polyPoolD').textContent=S.poly.poolDai!=null?fNum(S.poly.poolDai)+' DAI':'—';
   $('anuP').textContent=S.anu.price?f$(S.anu.price):'—';
+  S.anu.ch24=(anuBase&&S.anu.price)?(S.anu.price/anuBase.price-1)*100:null;
+  const ac=$('anuC');ac.textContent=fP(S.anu.ch24);ac.style.color=fC(S.anu.ch24);
   const pr=premiumPct(S.poly.price,S.anu.price);const pe=$('prem');
-  if(pr==null){pe.textContent='—';pe.className='badge-premium';}else{pe.textContent='Polygon 대비 '+(pr>=0?'▲':'▼')+' '+fP(pr);pe.className='badge-premium '+(pr>=0?'up':'down');}
+  if(pr==null){pe.textContent='—';pe.className='rb-val prem';}else{pe.textContent=(pr>=0?'▲ ':'▼ ')+fP(pr);pe.className='rb-val prem '+(pr>=0?'up':'down');}
   $('anuR0').textContent=S.anu.poolLgns!=null?fNum(S.anu.poolLgns)+' LGNS':'—';
   $('anuR1').textContent=S.anu.poolDai!=null?fNum(S.anu.poolDai)+' DAI':'—';
   $('fxL').textContent=S.fx.live?fN(S.fx.live,0):'—';
@@ -332,6 +398,8 @@ function tickRebase(){const r=S.rebase,el=$('rbCd');if(!el||!r||r.secondsLeft==n
 setInterval(go,30000);
 setInterval(tickRebase,1000);
 go();
+fetchAnuBase().then(uD);          // 기준가 도착 즉시 24h 변동률 반영
+setInterval(fetchAnuBase,600000); // 기준 시점(24h 전)이 흐르므로 10분마다 재측정
 setTimeout(mountCharts,800);
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 </script>

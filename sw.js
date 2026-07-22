@@ -1,6 +1,6 @@
 /* Origin LGNS PWA service worker — 앱 셸 캐시(설치형 PWA 조건) + network-first.
    외부 RPC/API/CDN(폰트·차트)은 통과(캐시 안 함). 두 페이지(시세/이율) 공통. */
-const CACHE = 'origin-lgns-shell-v1';
+const CACHE = 'origin-lgns-shell-v2';
 const SHELL = [
   './', './index.html', './rates.html', './manifest.json',
   './assets/shell.css', './assets/symbol.png',
