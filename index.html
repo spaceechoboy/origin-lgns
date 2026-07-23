@@ -82,32 +82,34 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .kv .krw-sm{font-size:10px;color:var(--text-faint);font-weight:400;margin-left:5px}
 .bc-foot{font-size:10px;color:var(--text-faint);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── 홍보 카드 (Origin Direct 무료 도구) — 회전 네온 보더가 시그니처 ── */
+/* ── 홍보 섹션 (Origin Direct 무료 도구) — 회전 네온 보더 시그니처 + 3-도구 카드 ── */
 @property --pang{syntax:'<angle>';initial-value:0deg;inherits:false}
-.promo{flex:0 0 auto;position:relative;display:flex;align-items:center;gap:clamp(10px,1vw,18px);flex-wrap:wrap;
-  padding:clamp(11px,1.5vh,16px) clamp(14px,1.2vw,22px);border-radius:14px;text-decoration:none;color:var(--text);
-  background:linear-gradient(120deg,rgba(159,232,112,.12),rgba(159,232,112,.03) 40%,rgba(127,212,232,.08)),var(--bg-card-2);
-  box-shadow:0 0 34px rgba(159,232,112,.10);transition:box-shadow .25s,transform .25s}
+.promo{flex:0 0 auto;position:relative;border-radius:16px;padding:clamp(12px,1.5vh,18px) clamp(14px,1.2vw,20px);
+  background:linear-gradient(120deg,rgba(159,232,112,.10),rgba(159,232,112,.02) 45%,rgba(127,212,232,.06)),var(--bg-card-2);
+  box-shadow:0 0 34px rgba(159,232,112,.10)}
 .promo::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;
   background:conic-gradient(from var(--pang),var(--neon) 0%,rgba(159,232,112,.12) 25%,var(--info) 50%,rgba(159,232,112,.12) 75%,var(--neon) 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
   animation:promoSpin 5s linear infinite;pointer-events:none}
 @keyframes promoSpin{to{--pang:360deg}}
-.promo:hover{box-shadow:0 0 48px rgba(159,232,112,.22);transform:translateY(-1px)}
-.promo:focus-visible{outline:2px solid var(--neon-bright);outline-offset:3px}
+.promo-head{display:flex;align-items:center;gap:10px;margin-bottom:clamp(10px,1.2vh,14px)}
 .promo-new{display:inline-flex;align-items:center;gap:6px;font:800 11px/1 var(--mono);letter-spacing:.1em;color:var(--bg-0);
   background:var(--neon);padding:6px 11px;border-radius:100px;box-shadow:0 0 20px rgba(159,232,112,.55);flex:0 0 auto}
 .promo-dot{width:6px;height:6px;border-radius:50%;background:var(--bg-0);animation:pulse 2s ease-in-out infinite}
-.promo-body{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:3px}
-.promo-title{font-size:clamp(14px,1.3vw,16px);font-weight:800;color:#fff;letter-spacing:-.01em}
-.promo-desc{font-size:12px;color:var(--text-dim);line-height:1.45}
-.promo-desc b{color:var(--neon-bright);font-weight:700}
-.promo-cta{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--bg-0);white-space:nowrap;
-  background:linear-gradient(135deg,var(--neon-bright),var(--neon));padding:10px 18px;border-radius:10px;
-  box-shadow:0 0 22px rgba(159,232,112,.35);transition:box-shadow .25s}
-.promo:hover .promo-cta{box-shadow:0 0 30px rgba(159,232,112,.6)}
-@media (prefers-reduced-motion:reduce){.promo::before{animation:none}.promo-dot{animation:none}.promo:hover{transform:none}}
+.promo-title{font-size:clamp(15px,1.5vw,19px);font-weight:800;color:#fff;letter-spacing:-.01em}
+.promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,.9vw,14px)}
+.promo-card{position:relative;display:flex;flex-direction:column;gap:5px;min-width:0;
+  padding:clamp(11px,1.2vh,15px) clamp(12px,1vw,16px);border:1px solid var(--border-strong);border-radius:12px;
+  background:rgba(159,232,112,.04);text-decoration:none;color:var(--text);transition:border-color .18s,box-shadow .18s,transform .18s}
+.promo-card:hover{border-color:var(--neon);box-shadow:0 0 26px rgba(159,232,112,.18);transform:translateY(-2px)}
+.promo-card:focus-visible{outline:2px solid var(--neon-bright);outline-offset:2px}
+.pc-t{display:flex;align-items:center;gap:7px;font-size:clamp(13px,1.2vw,15px);font-weight:800;color:#fff}
+.pc-t .arw{margin-left:auto;color:var(--neon);font-weight:700;transition:transform .18s}
+.promo-card:hover .pc-t .arw{transform:translateX(3px)}
+.pc-d{font-size:11.5px;color:var(--text-dim);line-height:1.5}
+.pc-d b{color:var(--neon-bright);font-weight:700}
+@media (prefers-reduced-motion:reduce){.promo::before{animation:none}.promo-dot{animation:none}.promo-card:hover{transform:none}.promo-card:hover .pc-t .arw{transform:none}}
 
 /* ── 세로(portrait): 세로 스택 + 스크롤 ── */
 @media (orientation:portrait){
@@ -121,12 +123,12 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   .price-strip{flex-wrap:wrap;gap:8px}
   .ps-right{gap:14px}
   .bottom{grid-template-columns:repeat(2,1fr)}
+  .promo-grid{grid-template-columns:1fr}
 }
 @media (orientation:portrait) and (max-width:520px){
   .bottom{grid-template-columns:1fr}
   .pv{font-size:30px}
   .rb-val{font-size:18px}
-  .promo-cta{flex:1 1 100%;text-align:center}
 }
 /* ── 가로(landscape)·낮은 화면(폰 가로): 16:9 2열 유지 + 스크롤 허용(클리핑 방지) ── */
 @media (orientation:landscape) and (max-height:560px){
@@ -185,15 +187,6 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
     </section>
   </main>
 
-  <a class="promo" href="https://awakeorigin.direct/tools/" target="_blank" rel="noopener" aria-label="Origin Direct 무료 편의 도구 둘러보기 (새 창)">
-    <span class="promo-new"><span class="promo-dot"></span>NEW</span>
-    <span class="promo-body">
-      <b class="promo-title">새로운 무료 도구가 출시됐어요!</b>
-      <span class="promo-desc">일반·장기 스테이킹 계산기 · 소각채권 계산기 · 내 자산 분석 · 실시간 시세·이율 — <b>awakeorigin.direct</b>에서 전부 무료</span>
-    </span>
-    <span class="promo-cta">무료 도구 둘러보기 →</span>
-  </a>
-
   <footer class="bottom">
     <div class="bcard">
       <div class="bc-h">💱 USD/KRW</div>
@@ -220,6 +213,27 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
       <div class="kv"><span>⬡ POL</span><b id="polU">—<span class="krw-sm" id="polK"></span></b></div>
     </div>
   </footer>
+
+  <section class="promo" aria-label="Origin Direct 새 무료 도구">
+    <div class="promo-head">
+      <span class="promo-new"><span class="promo-dot"></span>NEW</span>
+      <span class="promo-title">새로운 도구가 출시됐어요!</span>
+    </div>
+    <div class="promo-grid">
+      <a class="promo-card" href="https://awakeorigin.direct/tools/flex-calc.html" target="_blank" rel="noopener">
+        <span class="pc-t">일반 스테이킹 계산기 <span class="arw">→</span></span>
+        <span class="pc-d">보유 수량·투자금(원/달러/위안/엔)으로 리베이스 복리와 <b>손익분기 단가</b>를 체인별로 계산. 리베이스율은 온체인 실측 자동 — 입력할 필요 없습니다.</span>
+      </a>
+      <a class="promo-card" href="https://awakeorigin.direct/tools/long-calc.html" target="_blank" rel="noopener">
+        <span class="pc-t">장기 스테이킹 계산기 <span class="arw">→</span></span>
+        <span class="pc-d">360일·600일 상품의 만기 수량과 가치 — <b>현재 시세 기준</b>과 <b>가정 단가 기준</b>을 나란히. 추가 보상률도 온체인 실측 자동.</span>
+      </a>
+      <a class="promo-card" href="https://awakeorigin.direct/tools/burn-calc.html" target="_blank" rel="noopener">
+        <span class="pc-t">소각채권 계산기 <span class="arw">→</span></span>
+        <span class="pc-d">소각본드 신규 예치(<b>LGNS 230% · DAI 250% 보장</b>)의 드립 완료 시 최대 가치와 일반 스테이킹 전환 주기별 성장 곡선. 아누비스 체인 전용.</span>
+      </a>
+    </div>
+  </section>
 
 </div>
 
