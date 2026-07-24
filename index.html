@@ -23,6 +23,7 @@
   --border:rgba(159,232,112,.18);--border-strong:rgba(159,232,112,.35);
   --neon:#9FE870;--neon-bright:#B5FF7D;--neon-dim:#6BB048;--text:#E8F5E0;--text-dim:#9CA89A;--text-faint:#6B7569;
   --danger:#FF6B6B;--warn:#FFB84D;--gold:#E8C547;--info:#7FD4E8;
+  --rz-red:#E0908A;--rz-red-dim:#9C817E;
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -87,8 +88,9 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .bcard-lgns .kv{font-size:13px;padding:3px 0}
 .bcard-lgns .kv b{font-size:15px}
 .bcard-lgns .kv .krw-sm{font-size:11px}
-.bcard-lgns .kv b.rz-win{font-weight:900;font-size:16px;color:var(--neon);text-shadow:0 0 12px rgba(159,232,112,.4)}
-.bcard-lgns .kv b.rz-lose{font-weight:700;color:var(--text-dim);text-shadow:none}
+.bcard-lgns .kv b.rz{font-weight:700;color:var(--rz-red-dim)}
+.bcard-lgns .kv b.rz-win{font-weight:900;font-size:16px;color:var(--rz-red);text-shadow:0 0 10px rgba(224,107,107,.28)}
+.bcard-lgns .kv b.rz-lose{font-weight:700;color:var(--rz-red-dim);text-shadow:none}
 .bcard-lgns .lgns-advice{margin-top:9px;padding:7px 10px;border-radius:9px;font-size:12px;font-weight:700;line-height:1.35;
   background:rgba(159,232,112,.08);border:1px solid rgba(159,232,112,.22);color:var(--neon-bright)}
 .bcard-lgns .lgns-advice.adv-anu{background:rgba(127,212,232,.09);border-color:rgba(127,212,232,.28);color:var(--info)}
@@ -145,9 +147,14 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 }
 /* ── 데스크탑(가로·충분한 높이): 하단 카드가 빈 높이를 채우고 표시를 키움 ── */
 @media (orientation:landscape) and (min-height:561px){
-  .bc-h{font-size:13px;margin-bottom:9px}
-  .kv{font-size:13.5px;padding:4px 0}
-  .kv b{font-size:15px}
+  /* 세 카드 높이 균일(중앙 카드 기준). 양옆 카드는 제목 상단 고정 + 값 행을 남은 공간 중앙에 채워 밸런스 */
+  .bottom{align-items:stretch}
+  .bcard:not(.bcard-lgns) .kv:nth-child(2){margin-top:auto}
+  .bcard:not(.bcard-lgns) .kv:last-child{margin-bottom:auto}
+  .bc-h{font-size:14px;margin-bottom:9px}
+  .kv{font-size:15px;padding:5px 0}
+  .kv b{font-size:18px}
+  .kv .krw-sm{font-size:11.5px}
   .bc-foot{font-size:11px;margin-top:9px}
   /* LGNS 원화: 폴리곤·아누비스 좌우 2열 + 중앙 구분선 */
   .bcard-lgns .lgns-grid{display:grid;grid-template-columns:1fr 1fr}
