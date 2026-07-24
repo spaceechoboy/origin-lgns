@@ -72,8 +72,9 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .chart-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12px}
 
 /* 하단 스트립 */
-.bottom{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(8px,.8vw,14px)}
+.bottom{flex:0 0 auto;display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:clamp(8px,.8vw,14px)}
 .bcard{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:clamp(8px,1vh,13px) clamp(11px,.9vw,16px);min-width:0;
+  display:flex;flex-direction:column;
   background-image:linear-gradient(135deg,rgba(159,232,112,.04),transparent 70%)}
 .bc-h{font-size:12px;font-weight:700;color:var(--text-dim);margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kv{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:2.5px 0;font-size:12px}
@@ -81,6 +82,12 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .kv b{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kv .krw-sm{font-size:10px;color:var(--text-faint);font-weight:400;margin-left:5px}
 .bc-foot{font-size:10px;color:var(--text-faint);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bcard-lgns .lgns-blk{margin-top:8px}
+.bcard-lgns .lgns-name{font-size:12px;font-weight:800;color:var(--text);margin-bottom:3px;letter-spacing:.01em}
+.bcard-lgns .kv{font-size:13px;padding:3px 0}
+.bcard-lgns .kv b{font-size:15px}
+.bcard-lgns .kv .krw-sm{font-size:11px}
+.bcard-lgns .kv b.rz-win{font-weight:900;font-size:16px;text-shadow:0 0 12px rgba(159,232,112,.35)}
 
 /* ── 홍보 섹션 (Origin Direct 무료 도구) — 회전 네온 보더 시그니처 + 3-도구 카드 ── */
 @property --pang{syntax:'<angle>';initial-value:0deg;inherits:false}
@@ -123,12 +130,27 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   .price-strip{flex-wrap:wrap;gap:8px}
   .ps-right{gap:14px}
   .bottom{grid-template-columns:repeat(2,1fr)}
+  .bcard-lgns{order:-1}
   .promo-grid{grid-template-columns:1fr}
 }
 @media (orientation:portrait) and (max-width:520px){
   .bottom{grid-template-columns:1fr}
   .pv{font-size:30px}
   .rb-val{font-size:18px}
+}
+/* ── 데스크탑(가로·충분한 높이): 하단 카드가 빈 높이를 채우고 표시를 키움 ── */
+@media (orientation:landscape) and (min-height:561px){
+  .bcard{justify-content:space-between}
+  .bc-h{font-size:13px;margin-bottom:9px}
+  .kv{font-size:13.5px;padding:4px 0}
+  .kv b{font-size:15px}
+  .bc-foot{font-size:11px;margin-top:9px}
+  .bcard-lgns .lgns-blk{margin-top:11px}
+  .bcard-lgns .lgns-name{font-size:14px;margin-bottom:5px}
+  .bcard-lgns .kv{font-size:15px;padding:6px 0}
+  .bcard-lgns .kv b{font-size:19px}
+  .bcard-lgns .kv b.rz-win{font-size:20.5px}
+  .bcard-lgns .kv .krw-sm{font-size:12px}
 }
 /* ── 가로(landscape)·낮은 화면(폰 가로): 16:9 2열 유지 + 스크롤 허용(클리핑 방지) ── */
 @media (orientation:landscape) and (max-height:560px){
@@ -206,22 +228,23 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 
   <footer class="bottom">
     <div class="bcard">
-      <div class="bc-h">💱 USD/KRW</div>
-      <div class="kv"><span>🟢 실시간 (업비트 USDT)</span><b class="cgl" id="fxL">—</b></div>
-      <div class="kv"><span>📋 공시 기준환율</span><b class="cdm" id="fxO">—</b></div>
-      <div class="bc-foot" id="fxSrcEl">소스 확인 중…</div>
-    </div>
-    <div class="bcard">
-      <div class="bc-h">💵 스테이블코인 / 김프</div>
+      <div class="bc-h">💵 스테이블코인</div>
       <div class="kv"><span>🟢 업비트 USDT</span><b class="cgl" id="uU">—</b></div>
       <div class="kv"><span>🟠 빗썸 USDT</span><b class="co" id="uB">—</b></div>
-      <div class="kv"><span>📊 김프</span><b id="KP">—</b></div>
     </div>
-    <div class="bcard">
+    <div class="bcard bcard-lgns">
       <div class="bc-h">🔄 LGNS 원화 (체인별)</div>
-      <div class="kv"><span>⬡ Polygon</span><b class="cg" id="LkPoly">—</b></div>
-      <div class="kv"><span>𓁢 Anubis</span><b class="ca" id="LkAnu">—</b></div>
-      <div class="bc-foot">업비트 USDT 환율 기준</div>
+      <div class="lgns-blk">
+        <div class="lgns-name">Polygon</div>
+        <div class="kv"><span>현재가</span><b class="cg" id="LkPoly">—</b></div>
+        <div class="kv"><span>매도세 후 실현가</span><b class="cg" id="LrPoly">—<span class="krw-sm" id="LrPolyT"></span></b></div>
+      </div>
+      <div class="lgns-blk">
+        <div class="lgns-name">Anubis</div>
+        <div class="kv"><span>현재가</span><b class="ca" id="LkAnu">—</b></div>
+        <div class="kv"><span>매도세 후 실현가</span><b class="ca" id="LrAnu">—<span class="krw-sm" id="LrAnuT"></span></b></div>
+      </div>
+      <div class="bc-foot">업비트 USDT 환율 · 매도세 라이브 반영</div>
     </div>
     <div class="bcard">
       <div class="bc-h">📈 메이저 코인</div>
@@ -410,18 +433,30 @@ function uD(){
   if(pr==null){pe.textContent='—';pe.className='rb-val prem';}else{pe.textContent=(pr>=0?'▲ ':'▼ ')+fP(pr);pe.className='rb-val prem '+(pr>=0?'up':'down');}
   $('anuR0').textContent=S.anu.poolLgns!=null?fNum(S.anu.poolLgns)+' LGNS':'—';
   $('anuR1').textContent=S.anu.poolDai!=null?fNum(S.anu.poolDai)+' DAI':'—';
-  $('fxL').textContent=S.fx.live?fN(S.fx.live,0):'—';
-  $('fxO').textContent=S.fx.off?fN(S.fx.off,2):'—';
-  $('fxSrcEl').textContent=S.fx.src?'📡 '+S.fx.src:'⚠️ 소스 연결 실패';
   $('uU').textContent=S.fx.live?fW(S.fx.live):'—';$('uB').textContent=S.uBi?fW(S.uBi):'—';
-  const kp=S.fx.live&&S.uGl?((S.fx.live-S.uGl)/S.uGl)*100:null;const ke=$('KP');ke.textContent=fP(kp);ke.style.color=fC(kp);
   $('LkPoly').textContent=S.poly.price&&S.fx.live?fW(S.poly.price*S.fx.live):'—';
   $('LkAnu').textContent=S.anu.price&&S.fx.live?fW(S.anu.price*S.fx.live):'—';
+  const rzP=setRealized('LrPoly','LrPolyT',S.poly.price,S.poly.sellTax,S.fx.live);
+  const rzA=setRealized('LrAnu','LrAnuT',S.anu.price,S.anu.sellTax,S.fx.live);
+  markRealizedWinner(rzP,rzA);
   sC('btc',S.btc);sC('eth',S.eth);sC('pol',S.pol);
   renderTax();
 }
 function sC(id,d){if(!d)return;$(id+'U').firstChild&&($(id+'U').firstChild.textContent=d.u?f$(d.u,d.u>=100?0:2)+' ':'— ');
   const k=$(id+'K');if(k)k.textContent=d.k?fW(d.k):'';}
+// ── 매도세 반영 실현가(원화): price×(1−sellTax/100)×환율 ──
+function setRealized(valId,taxId,price,tax,fx){
+  const v=$(valId),t=$(taxId);
+  const net=(price&&fx)?((tax!=null?price*(1-tax/100):price)*fx):null;
+  if(v&&v.firstChild)v.firstChild.textContent=net!=null?fW(net):'—';
+  if(t)t.textContent=(tax!=null)?'−'+fN(tax,2)+'%':'';
+  return net;}
+// ── 두 체인 실현가 중 더 높은 쪽 강조 ──
+function markRealizedWinner(rp,ra){
+  const bp=$('LrPoly'),ba=$('LrAnu');if(!bp||!ba)return;
+  bp.classList.remove('rz-win');ba.classList.remove('rz-win');
+  if(rp==null||ra==null)return;
+  if(rp>ra)bp.classList.add('rz-win');else if(ra>rp)ba.classList.add('rz-win');}
 
 function renderRebase(){const r=S.rebase;if(!r||r.rate==null)return;$('rbRate').textContent=(r.rate>=0?'+':'')+(r.rate*100).toFixed(4)+'%';tickRebase();}
 function tickRebase(){const r=S.rebase,el=$('rbCd');if(!el||!r||r.secondsLeft==null||!r.builtAt)return;let left=r.secondsLeft-(Math.floor(Date.now()/1000)-r.builtAt);if(left<=0){el.textContent='임박';return;}const h=Math.floor(left/3600),m=Math.floor((left%3600)/60),s=Math.floor(left%60);el.textContent=(h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
