@@ -72,7 +72,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .chart-empty{height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:12px}
 
 /* 하단 스트립 */
-.bottom{flex:0 0 auto;display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:clamp(8px,.8vw,14px)}
+.bottom{flex:0 0 auto;display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:clamp(8px,.8vw,14px);align-items:start}
 .bcard{background:var(--bg-card);border:1px solid var(--border);border-radius:13px;padding:clamp(8px,1vh,13px) clamp(11px,.9vw,16px);min-width:0;
   display:flex;flex-direction:column;
   background-image:linear-gradient(135deg,rgba(159,232,112,.04),transparent 70%)}
@@ -87,7 +87,12 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .bcard-lgns .kv{font-size:13px;padding:3px 0}
 .bcard-lgns .kv b{font-size:15px}
 .bcard-lgns .kv .krw-sm{font-size:11px}
-.bcard-lgns .kv b.rz-win{font-weight:900;font-size:16px;text-shadow:0 0 12px rgba(159,232,112,.35)}
+.bcard-lgns .kv b.rz-win{font-weight:900;font-size:16px;color:var(--neon);text-shadow:0 0 12px rgba(159,232,112,.4)}
+.bcard-lgns .kv b.rz-lose{font-weight:700;color:var(--text-dim);text-shadow:none}
+.bcard-lgns .lgns-advice{margin-top:9px;padding:7px 10px;border-radius:9px;font-size:12px;font-weight:700;line-height:1.35;
+  background:rgba(159,232,112,.08);border:1px solid rgba(159,232,112,.22);color:var(--neon-bright)}
+.bcard-lgns .lgns-advice.adv-anu{background:rgba(127,212,232,.09);border-color:rgba(127,212,232,.28);color:var(--info)}
+.bcard-lgns .lgns-advice:empty{display:none}
 
 /* ── 홍보 섹션 (Origin Direct 무료 도구) — 회전 네온 보더 시그니처 + 3-도구 카드 ── */
 @property --pang{syntax:'<angle>';initial-value:0deg;inherits:false}
@@ -140,11 +145,14 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 }
 /* ── 데스크탑(가로·충분한 높이): 하단 카드가 빈 높이를 채우고 표시를 키움 ── */
 @media (orientation:landscape) and (min-height:561px){
-  .bcard{justify-content:space-between}
   .bc-h{font-size:13px;margin-bottom:9px}
   .kv{font-size:13.5px;padding:4px 0}
   .kv b{font-size:15px}
   .bc-foot{font-size:11px;margin-top:9px}
+  /* LGNS 원화: 폴리곤·아누비스 좌우 2열 + 중앙 구분선 */
+  .bcard-lgns .lgns-grid{display:grid;grid-template-columns:1fr 1fr}
+  .bcard-lgns .lgns-grid .lgns-blk{padding-right:clamp(16px,1.2vw,24px)}
+  .bcard-lgns .lgns-grid .lgns-blk+.lgns-blk{border-left:1px solid var(--border);padding-left:clamp(16px,1.2vw,24px);padding-right:0}
   .bcard-lgns .lgns-blk{margin-top:11px}
   .bcard-lgns .lgns-name{font-size:14px;margin-bottom:5px}
   .bcard-lgns .kv{font-size:15px;padding:6px 0}
@@ -234,16 +242,19 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
     </div>
     <div class="bcard bcard-lgns">
       <div class="bc-h">🔄 LGNS 원화 (체인별)</div>
-      <div class="lgns-blk">
-        <div class="lgns-name">Polygon</div>
-        <div class="kv"><span>현재가</span><b class="cg" id="LkPoly">—</b></div>
-        <div class="kv"><span>매도세 후 실현가</span><b class="cg" id="LrPoly">—<span class="krw-sm" id="LrPolyT"></span></b></div>
+      <div class="lgns-grid">
+        <div class="lgns-blk">
+          <div class="lgns-name">Polygon</div>
+          <div class="kv"><span>현재가</span><b class="cg" id="LkPoly">—</b></div>
+          <div class="kv"><span>매도세 후 실현가</span><b class="rz cg" id="LrPoly">—<span class="krw-sm" id="LrPolyT"></span></b></div>
+        </div>
+        <div class="lgns-blk">
+          <div class="lgns-name">Anubis</div>
+          <div class="kv"><span>현재가</span><b class="ca" id="LkAnu">—</b></div>
+          <div class="kv"><span>매도세 후 실현가</span><b class="rz ca" id="LrAnu">—<span class="krw-sm" id="LrAnuT"></span></b></div>
+        </div>
       </div>
-      <div class="lgns-blk">
-        <div class="lgns-name">Anubis</div>
-        <div class="kv"><span>현재가</span><b class="ca" id="LkAnu">—</b></div>
-        <div class="kv"><span>매도세 후 실현가</span><b class="ca" id="LrAnu">—<span class="krw-sm" id="LrAnuT"></span></b></div>
-      </div>
+      <div class="lgns-advice" id="lgnsAdvice"></div>
       <div class="bc-foot">업비트 USDT 환율 · 매도세 라이브 반영</div>
     </div>
     <div class="bcard">
@@ -453,10 +464,16 @@ function setRealized(valId,taxId,price,tax,fx){
   return net;}
 // ── 두 체인 실현가 중 더 높은 쪽 강조 ──
 function markRealizedWinner(rp,ra){
-  const bp=$('LrPoly'),ba=$('LrAnu');if(!bp||!ba)return;
-  bp.classList.remove('rz-win');ba.classList.remove('rz-win');
-  if(rp==null||ra==null)return;
-  if(rp>ra)bp.classList.add('rz-win');else if(ra>rp)ba.classList.add('rz-win');}
+  const bp=$('LrPoly'),ba=$('LrAnu'),adv=$('lgnsAdvice');if(!bp||!ba)return;
+  bp.classList.remove('rz-win','rz-lose');ba.classList.remove('rz-win','rz-lose');
+  const setAdv=(txt,cls)=>{if(adv){adv.textContent=txt;adv.className='lgns-advice'+(cls?' '+cls:'');}};
+  if(rp==null||ra==null){setAdv('','');return;}
+  if(rp===ra){setAdv('두 체인 실현가가 동일합니다','');return;}
+  const gap=Math.abs(rp-ra),lo=Math.min(rp,ra),pct=lo?gap/lo*100:0;
+  if(rp>ra){bp.classList.add('rz-win');ba.classList.add('rz-lose');
+    setAdv('현재 폴리곤 체인에서 매도하는 것이 유리합니다  (+'+fW(gap)+' · +'+fN(pct,2)+'%)','adv-poly');}
+  else{ba.classList.add('rz-win');bp.classList.add('rz-lose');
+    setAdv('현재 아누비스 체인에서 매도하는 것이 유리합니다  (+'+fW(gap)+' · +'+fN(pct,2)+'%)','adv-anu');}}
 
 function renderRebase(){const r=S.rebase;if(!r||r.rate==null)return;$('rbRate').textContent=(r.rate>=0?'+':'')+(r.rate*100).toFixed(4)+'%';tickRebase();}
 function tickRebase(){const r=S.rebase,el=$('rbCd');if(!el||!r||r.secondsLeft==null||!r.builtAt)return;let left=r.secondsLeft-(Math.floor(Date.now()/1000)-r.builtAt);if(left<=0){el.textContent='임박';return;}const h=Math.floor(left/3600),m=Math.floor((left%3600)/60),s=Math.floor(left%60);el.textContent=(h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
