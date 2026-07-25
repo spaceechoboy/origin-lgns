@@ -175,22 +175,6 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   .chart-card{flex:0 0 auto;height:60vh;min-height:200px}
 }
 
-/* ── 중복(中伏) 이스터에그 — 모바일 전용, 시세/이율 우측 작은 삼계탕. 발견 후 클릭 시 문구 ── */
-.egg-samgye{display:none;position:relative;align-items:center;justify-content:center;
-  width:30px;height:30px;padding:0;margin-left:2px;border:0;background:none;cursor:pointer;
-  -webkit-tap-highlight-color:transparent;opacity:.88;transition:transform .15s,opacity .15s}
-.egg-samgye:hover,.egg-samgye:focus-visible{opacity:1;transform:scale(1.1)}
-.egg-samgye:focus-visible{outline:2px solid var(--neon);outline-offset:3px;border-radius:50%}
-.egg-samgye img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));pointer-events:none}
-.egg-bubble{position:absolute;top:calc(100% + 10px);right:-4px;z-index:80;
-  width:max-content;max-width:min(300px,74vw);
-  background:var(--bg-card-2);color:var(--text);border:1px solid var(--border-strong);border-radius:12px;
-  padding:10px 13px;font-size:13px;line-height:1.55;font-weight:600;text-align:left;
-  box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px rgba(159,232,112,.12)}
-.egg-bubble::before{content:'';position:absolute;bottom:100%;right:14px;
-  border:7px solid transparent;border-bottom-color:var(--border-strong)}
-.egg-bubble[hidden]{display:none}
-@media (orientation:portrait){ .egg-samgye{display:inline-flex} }
 </style>
 </head>
 <body>
@@ -199,7 +183,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   <header class="topbar">
     <div class="brand">
       <span class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</span>
-      <nav class="nav-tabs"><a class="nav-tab active" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a></nav><button class="egg-samgye" id="eggSamgye" type="button" aria-label="숨은 이벤트"><img src="assets/egg-drumstick.png" alt="" draggable="false"><span class="egg-bubble" id="eggBubble" role="status" hidden>많이 덥죠? 오늘은 다 같이 삼계탕 한 그릇 어떠세요?</span></button>
+      <nav class="nav-tabs"><a class="nav-tab active" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a></nav>
       <span class="sts"><span class="pulse"></span>Polygon · Anubis · 30초 · <b id="lastU">로딩중…</b></span>
     </div>
     <div class="rebase-box">
@@ -493,11 +477,6 @@ setInterval(fetchAnuBase,600000); // 기준 시점(24h 전)이 흐르므로 10�
 setTimeout(mountCharts,800);
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 
-// ── 중복 이스터에그: 클릭 시 문구 토글, 바깥/ESC 클릭 시 닫힘 ──
-(function(){var egg=$('eggSamgye'),bubble=$('eggBubble');if(!egg||!bubble)return;
-  egg.addEventListener('click',function(e){e.stopPropagation();bubble.hidden=!bubble.hidden;});
-  document.addEventListener('click',function(){if(!bubble.hidden)bubble.hidden=true;});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')bubble.hidden=true;});})();
 </script>
 <div class="signature">SpaceEchoBoy</div>
 </body>
