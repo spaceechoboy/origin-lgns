@@ -67,6 +67,12 @@ textarea{resize:vertical;min-height:130px;line-height:1.55}
 .send-btn:hover{filter:brightness(1.08)}
 .send-btn:active{transform:translateY(1px)}
 .hint{font-size:12px;color:var(--text-faint);margin:11px 2px 0;line-height:1.55}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.ts-wrap{margin:2px 0 14px}
+.status{margin:12px 2px 0;font-size:13.5px;font-weight:700;line-height:1.5;border-radius:10px;padding:11px 13px}
+.status.ok{color:var(--neon);background:rgba(159,232,112,.09);border:1px solid rgba(159,232,112,.28)}
+.status.err{color:var(--danger);background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.30)}
+.send-btn:disabled{opacity:.6;cursor:default;filter:none}
 </style>
 </head>
 <body>
@@ -87,7 +93,7 @@ textarea{resize:vertical;min-height:130px;line-height:1.55}
       <button id="copyBtn" class="copy-btn" type="button" onclick="copyEmail()">복사</button>
     </div>
 
-    <form onsubmit="return sendMail(event)">
+    <form id="fbForm" onsubmit="return sendFeedback(event)" novalidate>
       <div class="field">
         <label for="fType">유형</label>
         <div class="sel"><select id="fType">
@@ -105,8 +111,12 @@ textarea{resize:vertical;min-height:130px;line-height:1.55}
         <label for="fMsg">내용</label>
         <textarea id="fMsg" rows="6" placeholder="버그 상황, 원하는 기능, 문의 내용을 자유롭게 적어주세요."></textarea>
       </div>
-      <button type="submit" class="send-btn">메일 보내기 →</button>
-      <p class="hint">‘메일 보내기’를 누르면 메일 앱이 열리며 <b>contact@awakeorigin.direct</b>로 내용이 채워집니다. 앱이 안 열리면 위 주소를 복사해 직접 보내주세요.</p>
+      <!-- 봇 방지 허니팟(사람에겐 보이지 않음) -->
+      <div class="hp" aria-hidden="true"><label>website<input id="fHp" type="text" tabindex="-1" autocomplete="off"></label></div>
+      <div id="tsWrap" class="ts-wrap" hidden></div>
+      <button id="fbBtn" type="submit" class="send-btn">보내기 →</button>
+      <p id="fbStatus" class="status" role="status" hidden></p>
+      <p class="hint">사이트에서 바로 전송됩니다. 전송이 안 되면 위 <b>contact@awakeorigin.direct</b> 주소로 직접 보내주세요.</p>
     </form>
   </main>
 
@@ -120,16 +130,44 @@ function copyEmail(){
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(addr).then(done).catch(function(){window.prompt('주소를 복사하세요',addr);});}
   else{window.prompt('주소를 복사하세요',addr);}
 }
-function sendMail(e){
+// ── 폼 백엔드 설정 ──
+var CFG = {
+  endpoint: "https://origin-feedback.awakeorigindirect.workers.dev", // 배포된 워커
+  turnstileSitekey: ""  // (선택) Turnstile 사이트키. 비우면 위젯 미표시(허니팟만 사용)
+};
+// Turnstile 위젯: 사이트키가 있을 때만 렌더
+(function(){
+  if(!CFG.turnstileSitekey) return;
+  var w=document.getElementById('tsWrap'); if(!w) return; w.hidden=false;
+  var d=document.createElement('div'); d.className='cf-turnstile';
+  d.setAttribute('data-sitekey',CFG.turnstileSitekey); d.setAttribute('data-theme','dark');
+  w.appendChild(d);
+  var s=document.createElement('script'); s.src='https://challenges.cloudflare.com/turnstile/v0/api.js'; s.async=true; s.defer=true;
+  document.head.appendChild(s);
+})();
+function fbShow(msg,kind){var el=document.getElementById('fbStatus');if(!el)return;el.textContent=msg;el.className='status '+kind;el.hidden=false;}
+async function sendFeedback(e){
   e.preventDefault();
+  var btn=document.getElementById('fbBtn');
   var type=document.getElementById('fType').value;
-  var from=document.getElementById('fEmail').value.trim();
-  var msg=document.getElementById('fMsg').value.trim();
-  var msgEl=document.getElementById('fMsg');
-  if(!msg){msgEl.focus();return false;}
-  var subject='['+type+'] Origin Direct 제안·문의';
-  var body=msg+'\n\n───\n회신받을 이메일: '+(from||'(미기재)')+'\n보낸 곳: origin-lgns 제안·문의';
-  window.location.href='mailto:contact@awakeorigin.direct?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  var email=document.getElementById('fEmail').value.trim();
+  var msgEl=document.getElementById('fMsg'), message=msgEl.value.trim();
+  var website=document.getElementById('fHp').value;
+  if(!message){msgEl.focus();fbShow('내용을 입력해 주세요.','err');return false;}
+  var token='';
+  if(CFG.turnstileSitekey){token=(window.turnstile&&window.turnstile.getResponse())||'';
+    if(!token){fbShow('스팸 방지 인증을 완료해 주세요.','err');return false;}}
+  btn.disabled=true;fbShow('전송 중…','ok');
+  try{
+    var r=await fetch(CFG.endpoint,{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({type:type,email:email,message:message,website:website,turnstileToken:token})});
+    var d={};try{d=await r.json();}catch(_){}
+    if(r.ok&&d.ok){fbShow('보내주셔서 감사합니다! 소중한 의견 잘 받았습니다.','ok');
+      msgEl.value='';document.getElementById('fEmail').value='';}
+    else{fbShow('전송에 실패했어요. 위 contact@awakeorigin.direct 주소로 직접 보내주세요.','err');}
+  }catch(err){fbShow('네트워크 오류로 전송하지 못했어요. 위 주소로 직접 보내주세요.','err');}
+  btn.disabled=false;
+  if(window.turnstile)try{window.turnstile.reset();}catch(_){}
   return false;
 }
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}

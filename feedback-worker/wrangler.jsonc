@@ -1,0 +1,13 @@
+{
+  // Origin Direct 제안·문의 폼 백엔드 워커 (Resend REST로 전송 — Workers Free 플랜에서 동작).
+  // 배포: 이 폴더에서  npx wrangler deploy
+  "name": "origin-feedback",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+
+  "observability": { "enabled": true }
+
+  // 시크릿(코드/설정에 넣지 말 것):
+  //   npx wrangler secret put RESEND_API_KEY     (필수, 발송전용 Resend 키)
+  //   npx wrangler secret put TURNSTILE_SECRET   (선택, 미설정 시 허니팟만으로 스팸 차단)
+}
