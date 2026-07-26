@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origin LGNS — 제안·문의</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.18/index.min.css">
+<link rel="stylesheet" href="assets/shell.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#050805">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Origin LGNS">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-180.png">
+<style>
+:root{
+  --bg-0:#050805;--bg-1:#0a1109;--bg-2:#0f1a0e;--bg-card:#0e1610;--bg-card-2:#121f12;
+  --border:rgba(159,232,112,.18);--border-strong:rgba(159,232,112,.35);
+  --neon:#9FE870;--neon-bright:#B5FF7D;--neon-dim:#6BB048;--text:#E8F5E0;--text-dim:#9CA89A;--text-faint:#6B7569;
+  --danger:#FF6B6B;--warn:#FFB84D;--gold:#E8C547;--info:#7FD4E8;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{min-height:100dvh;background:var(--bg-0);color:var(--text);
+  font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',-apple-system,system-ui,sans-serif;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(ellipse 1400px 700px at 50% -240px,rgba(159,232,112,.08),transparent),radial-gradient(ellipse 900px 500px at 100% 40%,rgba(159,232,112,.03),transparent)}
+
+.top{max-width:680px;margin:0 auto;padding:clamp(14px,2.6vw,24px) 20px 0;display:flex;flex-direction:column;gap:11px}
+.logo{font-size:clamp(18px,1.9vw,25px);font-weight:900;color:var(--neon);text-shadow:0 0 24px rgba(159,232,112,.4)}
+.tagline{font-size:12px;color:var(--text-faint)}
+
+.page{max-width:680px;margin:0 auto;padding:clamp(18px,3vw,30px) 20px 90px}
+h1{font-size:clamp(24px,3.6vw,33px);font-weight:900;margin:14px 0 8px;color:var(--text)}
+.lead{font-size:15px;color:var(--neon);font-weight:700;margin:0 0 10px}
+.desc{font-size:14.5px;color:var(--text-dim);line-height:1.65;margin:0}
+
+.email-row{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+  background:linear-gradient(135deg,rgba(159,232,112,.05),transparent 70%),var(--bg-card);
+  border:1px solid var(--border);border-radius:13px;padding:13px 15px;margin:22px 0 28px}
+.email-label{font-size:12px;font-weight:700;color:var(--text-dim)}
+.email-addr{font-family:var(--mono);font-size:15px;color:var(--neon-bright);text-decoration:none;font-weight:700;word-break:break-all}
+.email-addr:hover{text-decoration:underline}
+.copy-btn{margin-left:auto;background:none;border:1px solid var(--border-strong);color:var(--text-dim);
+  border-radius:8px;font:700 12px/1 var(--mono);padding:7px 13px;cursor:pointer;transition:.15s;white-space:nowrap}
+.copy-btn:hover{color:var(--neon);border-color:var(--neon)}
+
+form{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:clamp(16px,2.4vw,24px)}
+.field{margin-bottom:16px}
+.field:last-of-type{margin-bottom:8px}
+label{display:block;font-size:13px;font-weight:700;color:var(--text-dim);margin-bottom:7px}
+label .opt{color:var(--text-faint);font-weight:400}
+input,select,textarea{width:100%;background:var(--bg-0);border:1px solid var(--border-strong);border-radius:10px;
+  color:var(--text);font-family:inherit;font-size:15px;padding:12px 14px;outline:none;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:var(--text-faint)}
+input:focus,select:focus,textarea:focus{border-color:var(--neon);box-shadow:0 0 0 3px rgba(159,232,112,.12)}
+textarea{resize:vertical;min-height:130px;line-height:1.55}
+.sel{position:relative}
+.sel select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px}
+.sel::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-dim);pointer-events:none;font-size:12px}
+.send-btn{width:100%;margin-top:8px;background:var(--neon);color:var(--bg-0);border:0;border-radius:12px;
+  font-weight:800;font-size:15px;padding:14px;cursor:pointer;box-shadow:0 0 22px rgba(159,232,112,.35);transition:filter .15s,transform .05s}
+.send-btn:hover{filter:brightness(1.08)}
+.send-btn:active{transform:translateY(1px)}
+.hint{font-size:12px;color:var(--text-faint);margin:11px 2px 0;line-height:1.55}
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</div>
+    <nav class="nav-tabs"><a class="nav-tab" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a><a class="nav-tab active" href="contact.html">제안·문의</a></nav>
+    <div class="tagline">여러분의 목소리로 도구가 자랍니다</div>
+  </header>
+
+  <main class="page">
+    <h1>제안·문의</h1>
+    <p class="lead">여러분의 피드백이 다음 도구를 만듭니다.</p>
+    <p class="desc">버그 제보, 나왔으면 하는 도구, 사용 중 궁금한 점 — 무엇이든 편하게 보내주세요. 다양한 의견과 아이디어를 기다립니다.</p>
+
+    <div class="email-row">
+      <span class="email-label">📮 직접 메일</span>
+      <a class="email-addr" href="mailto:contact@awakeorigin.direct">contact@awakeorigin.direct</a>
+      <button id="copyBtn" class="copy-btn" type="button" onclick="copyEmail()">복사</button>
+    </div>
+
+    <form onsubmit="return sendMail(event)">
+      <div class="field">
+        <label for="fType">유형</label>
+        <div class="sel"><select id="fType">
+          <option>버그 제보</option>
+          <option>도구 제안</option>
+          <option>일반 문의</option>
+          <option>기타</option>
+        </select></div>
+      </div>
+      <div class="field">
+        <label for="fEmail">회신받을 이메일 <span class="opt">(선택)</span></label>
+        <input id="fEmail" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email">
+      </div>
+      <div class="field">
+        <label for="fMsg">내용</label>
+        <textarea id="fMsg" rows="6" placeholder="버그 상황, 원하는 기능, 문의 내용을 자유롭게 적어주세요."></textarea>
+      </div>
+      <button type="submit" class="send-btn">메일 보내기 →</button>
+      <p class="hint">‘메일 보내기’를 누르면 메일 앱이 열리며 <b>contact@awakeorigin.direct</b>로 내용이 채워집니다. 앱이 안 열리면 위 주소를 복사해 직접 보내주세요.</p>
+    </form>
+  </main>
+
+  <div class="signature">SpaceEchoBoy</div>
+
+<script>
+"use strict";
+function copyEmail(){
+  var addr='contact@awakeorigin.direct',b=document.getElementById('copyBtn'),o=b.textContent;
+  function done(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent=o;},1500);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(addr).then(done).catch(function(){window.prompt('주소를 복사하세요',addr);});}
+  else{window.prompt('주소를 복사하세요',addr);}
+}
+function sendMail(e){
+  e.preventDefault();
+  var type=document.getElementById('fType').value;
+  var from=document.getElementById('fEmail').value.trim();
+  var msg=document.getElementById('fMsg').value.trim();
+  var msgEl=document.getElementById('fMsg');
+  if(!msg){msgEl.focus();return false;}
+  var subject='['+type+'] Origin Direct 제안·문의';
+  var body=msg+'\n\n───\n회신받을 이메일: '+(from||'(미기재)')+'\n보낸 곳: origin-lgns 제안·문의';
+  window.location.href='mailto:contact@awakeorigin.direct?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  return false;
+}
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+</body>
+</html>

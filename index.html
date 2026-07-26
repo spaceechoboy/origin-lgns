@@ -183,7 +183,7 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
   <header class="topbar">
     <div class="brand">
       <span class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</span>
-      <nav class="nav-tabs"><a class="nav-tab active" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a></nav>
+      <nav class="nav-tabs"><a class="nav-tab active" href="index.html">시세</a><a class="nav-tab" href="rates.html">이율</a><a class="nav-tab" href="contact.html">제안·문의</a></nav>
       <span class="sts"><span class="pulse"></span>Polygon · Anubis · 30초 · <b id="lastU">로딩중…</b></span>
     </div>
     <div class="rebase-box">
@@ -315,6 +315,13 @@ function tfetch(url,ms){const c=new AbortController();const t=setTimeout(functio
   return fetch(url,{signal:c.signal}).then(function(r){return r.json();}).finally(function(){clearTimeout(t);});}
 // 원화 환산율: 업비트 USDT 우선, 없으면 코인게코(테더 KRW)·빗썸 폴백
 function fxKRW(){return S.fx.live||S.uGl||S.uBi||null;}
+// 마지막 값 캐시 → 재방문·새로고침 시 즉시 페인트('—' 깜빡임 제거), 신선 데이터 도착 시 갱신
+function saveCache(){try{localStorage.setItem('lgns_seise',JSON.stringify({poly:S.poly,anu:S.anu,fxLive:S.fx.live,uBi:S.uBi,uGl:S.uGl,btc:S.btc,eth:S.eth,pol:S.pol}));}catch(e){}}
+function loadCache(){try{var c=JSON.parse(localStorage.getItem('lgns_seise'));if(!c)return;
+  if(c.poly)Object.assign(S.poly,c.poly);if(c.anu)Object.assign(S.anu,c.anu);
+  if(c.fxLive!=null)S.fx.live=c.fxLive;if(c.uBi!=null)S.uBi=c.uBi;if(c.uGl!=null)S.uGl=c.uGl;
+  if(c.btc)S.btc=c.btc;if(c.eth)S.eth=c.eth;if(c.pol)S.pol=c.pol;uD();}catch(e){}}
+function stamp(){$('lastU').textContent=new Date().toLocaleTimeString('ko-KR');saveCache();}
 
 async function fetchAnubis(){
   try{
@@ -397,23 +404,25 @@ function mountCharts(){if(chartsMounted)return;chartsMounted=true;
   if(p)p.innerHTML='<iframe src="'+POLY_DEXT+'" loading="lazy" title="Polygon LGNS/DAI"></iframe>';
   if(a)a.innerHTML='<iframe src="'+ANU_DEXT+'" loading="lazy" title="Anubis LGNS/DAI"></iframe>';}
 
-async function go(){
-  const [dR,gR,uR,bR]=await Promise.allSettled([
-    tfetch(A.dex),tfetch(A.gl),tfetch(A.up),tfetch(A.bi)
-  ]);
-  if(dR.status==='fulfilled'&&dR.value){const a=dR.value,p=Array.isArray(a)?(a.find(x=>x.quoteToken?.symbol==='DAI'&&x.dexId==='quickswap')||a[0]):null;
-    if(p){S.poly.price=parseFloat(p.priceUsd);S.poly.ch24=p.priceChange?.h24??null;S.poly.poolDai=p.liquidity?.quote??null;S.poly.poolLgns=p.liquidity?.base??null;}}
-  if(gR.status==='fulfilled'&&gR.value){const g=gR.value;
+function go(){
+  // 각 소스를 독립 발사 → 도착하는 즉시 개별 렌더(전체 배치 대기 안 함)
+  tfetch(A.dex).then(function(a){
+    const p=Array.isArray(a)?(a.find(x=>x.quoteToken?.symbol==='DAI'&&x.dexId==='quickswap')||a[0]):null;
+    if(p){S.poly.price=parseFloat(p.priceUsd);S.poly.ch24=p.priceChange?.h24??null;S.poly.poolDai=p.liquidity?.quote??null;S.poly.poolLgns=p.liquidity?.base??null;}
+    stamp();uD();}).catch(function(){});
+  tfetch(A.gl).then(function(g){
     if(g.tether?.krw)S.uGl=g.tether.krw;
     if(g.bitcoin)S.btc={u:g.bitcoin.usd,k:g.bitcoin.krw,ch:g.bitcoin.usd_24h_change};
     if(g.ethereum)S.eth={u:g.ethereum.usd,k:g.ethereum.krw,ch:g.ethereum.usd_24h_change};
-    if(g['polygon-ecosystem-token']){const pt=g['polygon-ecosystem-token'];S.pol={u:pt.usd,k:pt.krw,ch:pt.usd_24h_change};}}
-  if(uR.status==='fulfilled'&&Array.isArray(uR.value)){uR.value.forEach(t=>{
-    if(t.market==='KRW-USDT')S.fx.live=t.trade_price;});}
-  if(bR.status==='fulfilled'&&bR.value?.data?.closing_price)S.uBi=parseFloat(bR.value.data.closing_price);
-  $('lastU').textContent=new Date().toLocaleTimeString('ko-KR');
-  uD();                                          // 병렬 데이터 도착 즉시 1차 페인트(아누비스·세율 대기 안 함)
-  fetchAnubis().then(uD).catch(function(){});    // 아누비스 시세는 비차단으로 채워 재렌더
+    if(g['polygon-ecosystem-token']){const pt=g['polygon-ecosystem-token'];S.pol={u:pt.usd,k:pt.krw,ch:pt.usd_24h_change};}
+    stamp();uD();}).catch(function(){});
+  tfetch(A.up).then(function(u){
+    if(Array.isArray(u))u.forEach(t=>{if(t.market==='KRW-USDT')S.fx.live=t.trade_price;});
+    stamp();uD();}).catch(function(){});
+  tfetch(A.bi).then(function(b){
+    if(b?.data?.closing_price)S.uBi=parseFloat(b.data.closing_price);
+    stamp();uD();}).catch(function(){});
+  fetchAnubis().then(function(){stamp();uD();}).catch(function(){}); // 아누비스 시세 비차단
   fetchRebase().then(renderRebase).catch(function(){});
   fetchSellTax().then(renderTax).catch(function(){});
 }
@@ -465,6 +474,7 @@ function markRealizedWinner(rp,ra){
 function renderRebase(){const r=S.rebase;if(!r||r.rate==null)return;$('rbRate').textContent=(r.rate>=0?'+':'')+(r.rate*100).toFixed(4)+'%';tickRebase();}
 function tickRebase(){const r=S.rebase,el=$('rbCd');if(!el||!r||r.secondsLeft==null||!r.builtAt)return;let left=r.secondsLeft-(Math.floor(Date.now()/1000)-r.builtAt);if(left<=0){el.textContent='임박';return;}const h=Math.floor(left/3600),m=Math.floor((left%3600)/60),s=Math.floor(left%60);el.textContent=(h>0?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
 
+loadCache();                      // 마지막 값 즉시 표시(‘—’ 깜빡임 제거) 후 신선 데이터로 갱신
 setInterval(go,30000);
 setInterval(tickRebase,1000);
 go();
