@@ -10,7 +10,9 @@ const ALLOWED_ORIGINS = [
 const TO_EMAIL   = "contact@awakeorigin.direct";
 const FROM_EMAIL = "noreply@awakeorigin.direct";   // Resend에서 From 인증된 주소
 const FROM_NAME  = "Origin Direct 제안·문의";
-const TYPES      = ["버그 제보", "도구 제안", "일반 문의", "기타"];
+// ★ 한국어 원문 고정 — 클라이언트가 번역된 라벨을 보내면 전부 "기타"로 뭉개진다.
+//   origin-console(다국어)은 화면 라벨만 번역하고 이 원문을 전송한다(js/feedback.js FEEDBACK_TYPES).
+const TYPES      = ["버그 제보", "도구 제안", "일반 문의", "결제 문의", "기타"];
 const MAX_MSG    = 5000;
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
@@ -62,6 +64,9 @@ export default {
     const email    = String(data.email || "").trim().slice(0, 200);
     const message  = String(data.message || "").trim().slice(0, MAX_MSG);
     const honeypot = String(data.website || "").trim();
+    // 출처 라벨 — origin-lgns 폼과 origin-console 폼이 같은 인박스를 쓰므로 어디서 온 문의인지 구분한다.
+    // 기본값은 구 폼 무수정 하위호환(origin-lgns가 source를 안 보내도 종전과 동일한 본문).
+    const source   = String(data.source || "origin-lgns 제안·문의").slice(0, 80);
 
     // 봇: 허니팟 필드가 채워졌으면 조용히 성공처럼 반환(전송 안 함)
     if (honeypot) return json({ ok: true }, 200, origin);
@@ -76,12 +81,12 @@ export default {
 
     const subject = `[${type}] Origin Direct 제안·문의`;
     const text =
-      `${message}\n\n───\n유형: ${type}\n회신 이메일: ${email || "(미기재)"}\n출처: origin-lgns 제안·문의`;
+      `${message}\n\n───\n유형: ${type}\n회신 이메일: ${email || "(미기재)"}\n출처: ${source}`;
     const html =
       `<div style="font-family:sans-serif;line-height:1.6;color:#111">` +
       `<p style="white-space:pre-wrap">${esc(message)}</p>` +
       `<hr style="border:none;border-top:1px solid #ddd">` +
-      `<p style="color:#666;font-size:13px">유형: ${esc(type)}<br>회신 이메일: ${esc(email || "(미기재)")}<br>출처: origin-lgns 제안·문의</p>` +
+      `<p style="color:#666;font-size:13px">유형: ${esc(type)}<br>회신 이메일: ${esc(email || "(미기재)")}<br>출처: ${esc(source)}</p>` +
       `</div>`;
 
     const payload = {
