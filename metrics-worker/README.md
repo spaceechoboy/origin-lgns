@@ -26,6 +26,17 @@ npx wrangler deploy
 ⚠ **워커를 먼저 배포하고 그 다음에 프런트를 push** 하세요. 순서가 뒤집히면
 비콘이 404가 되고 그 기간 데이터가 유실됩니다(앱 동작에는 영향 없음).
 
+## 운영 주의: DASH_KEY 노출 경로
+
+`/dash`·`/stats`는 `?k=<DASH_KEY>` 쿼리스트링으로 인증합니다. `wrangler.jsonc`의
+`observability`가 켜져 있어 이 URL이 **Cloudflare Workers Logs에 그대로 남고**,
+브라우저 히스토리에도 남습니다(쿼리스트링이라).
+
+- 대시보드 URL을 공유·스크린샷·화면공유 등으로 노출했다면 즉시 회전:
+  ```bash
+  npx wrangler secret put DASH_KEY
+  ```
+
 ## 자기 트래픽 제외
 
 자기 트래픽은 삭제하지 않고 `internal=1`로 **표시만** 합니다(대시보드 기본 집계에서 제외).

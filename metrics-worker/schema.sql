@@ -14,5 +14,5 @@ CREATE TABLE IF NOT EXISTS hits (
   ref      TEXT,                      -- 유입 호스트만
   internal INTEGER NOT NULL DEFAULT 0 -- 1 = 자기 트래픽(삭제하지 않고 표시만)
 );
-CREATE INDEX IF NOT EXISTS hits_day_idx    ON hits(day);
-CREATE INDEX IF NOT EXISTS hits_day_ev_idx ON hits(day, ev);
+CREATE INDEX IF NOT EXISTS hits_day_vid_idx ON hits(day, vid);
+CREATE INDEX IF NOT EXISTS hits_day_ev_idx  ON hits(day, ev);
