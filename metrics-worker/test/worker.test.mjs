@@ -52,3 +52,49 @@ test('모르는 경로는 404', async () => {
   const res = await worker.fetch(new Request('https://m.dev/nope'), {}, ctx);
   assert.equal(res.status, 404);
 });
+
+import { normalize } from '../src/worker.js';
+
+const META = { now: Date.UTC(2026, 6, 28, 5, 0, 0), country: 'KR', ua: 'Mozilla/5.0 (Macintosh)' };
+
+test('정규화: 화이트리스트 값은 통과', () => {
+  const r = normalize({ page: 'rates', ev: 'rates:refresh', ref: 't.me', mode: 'app' }, META);
+  assert.equal(r.day, '2026-07-28');
+  assert.equal(r.ts, Math.floor(META.now / 1000));
+  assert.equal(r.site, 'origin-lgns');
+  assert.equal(r.page, 'rates');
+  assert.equal(r.ev, 'rates:refresh');
+  assert.equal(r.ref, 't.me');
+  assert.equal(r.mode, 'app');
+  assert.equal(r.country, 'KR');
+  assert.equal(r.device, 'desktop');
+});
+
+test('정규화: 화이트리스트 밖 이벤트·페이지는 "기타"', () => {
+  const r = normalize({ page: 'admin', ev: 'steal:keys', mode: 'x' }, META);
+  assert.equal(r.page, '기타');
+  assert.equal(r.ev, '기타');
+  assert.equal(r.mode, 'web');
+});
+
+test('★금지 필드 회귀: 지갑주소·잔액·쿼리는 결과에 존재하지 않는다', () => {
+  const r = normalize({
+    page: 'index', ev: 'view',
+    addr: '0xC7Ed57d3fb98e4Ee5ADd4b8F6A0AD9E86eCbe6d1',
+    balance: 4851.23, query: '?wallet=0xabc', extra: 'x',
+  }, META);
+  assert.deepEqual(Object.keys(r).sort(),
+    ['country', 'day', 'device', 'ev', 'mode', 'page', 'ref', 'site', 'ts']);
+  assert.ok(!JSON.stringify(r).includes('0xC7Ed'), '주소가 어떤 필드로도 새면 안 됨');
+  assert.ok(!JSON.stringify(r).includes('4851'), '잔액이 새면 안 됨');
+});
+
+test('★referrer는 호스트만 — 전체 URL이 와도 경로·쿼리가 잘린다', () => {
+  const r = normalize({ page: 'index', ev: 'view', ref: 'https://t.me/room?wallet=0xabc#x' }, META);
+  assert.equal(r.ref, 't.me');
+});
+
+test('기기 판정: 모바일 UA', () => {
+  const r = normalize({ page: 'index', ev: 'view' }, { ...META, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' });
+  assert.equal(r.device, 'mobile');
+});

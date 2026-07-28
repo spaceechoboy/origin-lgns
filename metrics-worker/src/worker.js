@@ -9,6 +9,35 @@ const ALLOWED_ORIGINS = [
 const MAX_BODY = 1024;                 // bytes — 페이로드는 200B 남짓이면 충분
 const BOT_UA = /bot|crawler|spider|crawling|headless|monitor|preview|curl|wget|python-requests|node-fetch/i;
 
+const SITE   = "origin-lgns";
+const PAGES  = ["index", "rates", "contact"];
+// ★ 이 목록은 assets/px.js의 EVENTS와 **반드시 동일**하다 (test/contract.test.mjs가 강제).
+const EVENTS = ["view", "rates:refresh", "rates:evidence", "contact:copy", "contact:submit", "pwa:install"];
+
+function refHost(v) {
+  const s = String(v || "").trim().slice(0, 200);
+  if (!s) return "";
+  try {
+    // 클라이언트는 호스트만 보내지만, 전체 URL이 와도 호스트만 남긴다(2중 방어).
+    return new URL(s.includes("://") ? s : "https://" + s).hostname.slice(0, 80);
+  } catch (e) { return ""; }
+}
+
+export function normalize(data, meta) {
+  const d = data && typeof data === "object" ? data : {};
+  return {
+    ts: Math.floor(meta.now / 1000),
+    day: new Date(meta.now).toISOString().slice(0, 10),
+    site: SITE,
+    page: PAGES.includes(d.page) ? d.page : "기타",
+    ev: EVENTS.includes(d.ev) ? d.ev : "기타",
+    ref: refHost(d.ref),
+    mode: d.mode === "app" ? "app" : "web",
+    country: String(meta.country || "ZZ").slice(0, 2),
+    device: /Mobile|Android|iPhone|iPad|iPod/i.test(meta.ua) ? "mobile" : "desktop",
+  };
+}
+
 function cors(origin) {
   const ok = ALLOWED_ORIGINS.includes(origin);
   return {
