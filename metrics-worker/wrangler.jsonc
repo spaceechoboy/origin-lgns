@@ -1,0 +1,22 @@
+{
+  // origin-lgns 접속·사용량 계측 워커. feedback-worker와 별도 워커(장애 격리).
+  // 배포: 이 폴더에서  npx wrangler deploy
+  "name": "origin-metrics",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+
+  "observability": { "enabled": true },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "origin_metrics",
+      "database_id": "PASTE_AFTER_d1_create"
+    }
+  ]
+
+  // 시크릿(코드/설정에 넣지 말 것):
+  //   npx wrangler secret put VID_SALT       (필수, 임의 32바이트 문자열)
+  //   npx wrangler secret put DASH_KEY       (필수, 대시보드 토큰)
+  //   npx wrangler secret put INTERNAL_IPS   (선택, 자기 IP 콤마 목록)
+}
