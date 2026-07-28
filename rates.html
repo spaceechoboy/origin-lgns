@@ -274,6 +274,7 @@ function fillEvRow(key){
 document.addEventListener("click",ev=>{
   const b=ev.target.closest("[data-ev]"); if(!b) return;
   const key=b.dataset.ev, e=EVID[key]; if(!e) return;
+  if(window.px) px.ev('rates:evidence');   // ← 계측. b.dataset.ev(온체인 근거 키)와는 무관하다.
   if(key.startsWith("reb:")||key.startsWith("extra:")){            // 율 행 → 펼침 토글
     const el=$(evId(key)); if(!el) return;
     const open=el.hidden; if(open) fillEvRow(key); else el.hidden=true;
@@ -475,6 +476,7 @@ function renderAll(){ renderChain('poly'); renderChain('anu'); }
 
 // ───────────────────────── boot / refresh ─────────────────────────
 async function go(){
+  if (window.px) px.ev('rates:refresh');
   const b=$('btnR'); if(b){b.disabled=true;b.textContent='⏳ 읽는 중…';}
   const tasks=[
     ['poly.sellTax',()=>readSellTax('poly').then(v=>S.poly.sellTax=v)],

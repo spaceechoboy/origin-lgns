@@ -127,7 +127,9 @@ textarea{resize:vertical;min-height:130px;line-height:1.55}
 "use strict";
 function copyEmail(){
   var addr='contact@awakeorigin.direct',b=document.getElementById('copyBtn'),o=b.textContent;
-  function done(){b.textContent='복사됨 ✓';setTimeout(function(){b.textContent=o;},1500);}
+  function done(){
+    if(window.px) px.ev('contact:copy');
+    b.textContent='복사됨 ✓';setTimeout(function(){b.textContent=o;},1500);}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(addr).then(done).catch(function(){window.prompt('주소를 복사하세요',addr);});}
   else{window.prompt('주소를 복사하세요',addr);}
 }
@@ -164,6 +166,7 @@ async function sendFeedback(e){
       body:JSON.stringify({type:type,email:email,message:message,website:website,turnstileToken:token})});
     var d={};try{d=await r.json();}catch(_){}
     if(r.ok&&d.ok){fbShow('보내주셔서 감사합니다! 소중한 의견 잘 받았습니다.','ok');
+      if(window.px) px.ev('contact:submit');
       msgEl.value='';document.getElementById('fEmail').value='';}
     else{fbShow('전송에 실패했어요. 위 contact@awakeorigin.direct 주소로 직접 보내주세요.','err');}
   }catch(err){fbShow('네트워크 오류로 전송하지 못했어요. 위 주소로 직접 보내주세요.','err');}
