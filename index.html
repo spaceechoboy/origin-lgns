@@ -296,7 +296,10 @@ const SLGNS="0x99a57E6C8558BC6689f894e068733ADf83C19725";
 const POLY_DEXT="https://www.dextools.io/widget-chart/en/polygon/pe-light/0x882df4b0fb50a229c3b4124eb18c759911485bfb?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&chartInUsd=true";
 const ANU_DEXT="https://www.dextools.io/widget-chart/en/anubis/pe-light/0x32a4586797e3f561f41c0f47ca57ed08d64f3dc0?theme=dark&chartType=1&chartResolution=15&drawingToolbars=false&chartInUsd=true";
 const A={
-  dex:`https://api.dexscreener.com/tokens/v1/polygon/${POLY_LGNS}`,
+  // 폴리곤 폴백 전용 — 반드시 '메인 풀 주소'로 고정 조회한다.
+  // 토큰 엔드포인트(/tokens/v1/{chain}/{token})는 LGNS 페어를 단 1개만 돌려주는데
+  // 그게 유동성 $1.2만짜리 먼지 풀(0xB135Aa99…)이라 실제 시세와 5%+ 벌어진다(2026-07-28 실측).
+  dex:`https://api.dexscreener.com/latest/dex/pairs/polygon/${POLY_POOL}`,
   gl:"https://api.coingecko.com/api/v3/simple/price?ids=tether,bitcoin,ethereum,polygon-ecosystem-token&vs_currencies=usd,krw&include_24hr_change=true",
   up:"https://api.upbit.com/v1/ticker?markets=KRW-USDT,KRW-USDC,KRW-BTC,KRW-ETH,KRW-POL",
   bi:"https://api.bithumb.com/public/ticker/USDT_KRW"
@@ -316,8 +319,9 @@ function tfetch(url,ms){const c=new AbortController();const t=setTimeout(functio
 // 원화 환산율: 업비트 USDT 우선, 없으면 코인게코(테더 KRW)·빗썸 폴백
 function fxKRW(){return S.fx.live||S.uGl||S.uBi||null;}
 // 마지막 값 캐시 → 재방문·새로고침 시 즉시 페인트('—' 깜빡임 제거), 신선 데이터 도착 시 갱신
-function saveCache(){try{localStorage.setItem('lgns_seise',JSON.stringify({poly:S.poly,anu:S.anu,fxLive:S.fx.live,uBi:S.uBi,uGl:S.uGl,btc:S.btc,eth:S.eth,pol:S.pol}));}catch(e){}}
-function loadCache(){try{var c=JSON.parse(localStorage.getItem('lgns_seise'));if(!c)return;
+// 캐시 키에 v2 — 구 키에는 먼지 풀 시세($1.82·4.1K LGNS)가 절여져 있어 첫 페인트를 오염시킨다.
+function saveCache(){try{localStorage.setItem('lgns_seise_v2',JSON.stringify({poly:S.poly,anu:S.anu,fxLive:S.fx.live,uBi:S.uBi,uGl:S.uGl,btc:S.btc,eth:S.eth,pol:S.pol}));}catch(e){}}
+function loadCache(){try{var c=JSON.parse(localStorage.getItem('lgns_seise_v2'));if(!c)return;
   if(c.poly)Object.assign(S.poly,c.poly);if(c.anu)Object.assign(S.anu,c.anu);
   if(c.fxLive!=null)S.fx.live=c.fxLive;if(c.uBi!=null)S.uBi=c.uBi;if(c.uGl!=null)S.uGl=c.uGl;
   if(c.btc)S.btc=c.btc;if(c.eth)S.eth=c.eth;if(c.pol)S.pol=c.pol;uD();}catch(e){}}
@@ -361,6 +365,48 @@ async function fetchAnuBase(){
 }
 async function polyRpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
 function rpcWords(hex){const h=hex.startsWith('0x')?hex.slice(2):hex;const o=[];for(let i=0;i<h.length;i+=64)o.push(BigInt('0x'+(h.slice(i,i+64)||'0')));return o;}
+// ── 폴리곤 시세 — 메인 LP 리저브 직독(아누비스 fetchAnubis 와 동일 방식) ──────────
+//    제3자 인덱서가 '어느 풀을 대표로 줄지' 고르게 두지 않고 메인 풀을 주소로 못박는다.
+//    POLY_POOL(0x882df4B0…) token0=DAI(18) / token1=LGNS(9) — 온체인 확인(2026-07-28).
+function parsePolyReserves(hex){const h=hex.slice(2);
+  return {dai:BigInt('0x'+h.slice(0,64)),lgns:BigInt('0x'+h.slice(64,128))};}
+async function fetchPolygon(){
+  for(const url of POLY_RPC){
+    try{
+      const r=parsePolyReserves(await polyRpc(url,'eth_call',[{to:POLY_POOL,data:'0x0902f1ac'},'latest']));
+      if(r.lgns===0n)continue;
+      S.poly.poolDai=Number(r.dai)/1e18;S.poly.poolLgns=Number(r.lgns)/1e9;
+      S.poly.price=(Number(r.dai)/Number(r.lgns))*1e-9;
+      return true;
+    }catch(e){}
+  }
+  return false;
+}
+// 24h 변동 기준가 — 아누비스와 동일하게 '24h 전 블록'의 리저브를 직접 읽는다(현재가와 동일 소스).
+// 아카이브 eth_call 은 노드마다 지원이 갈린다(publicnode ✗ / drpc·1rpc ✓) → 되는 노드까지 순회.
+let polyBase=null; // {price, ts(기준 블록 실제시각)}
+async function fetchPolyBase(){
+  const target=Math.floor(Date.now()/1000)-86400;
+  for(const url of POLY_RPC){
+    try{
+      const latest=await polyRpc(url,'eth_getBlockByNumber',['latest',false]);
+      const lNum=parseInt(latest.number,16), lTs=parseInt(latest.timestamp,16);
+      const pNum=Math.max(1,lNum-5000);
+      const probe=await polyRpc(url,'eth_getBlockByNumber',['0x'+pNum.toString(16),false]);
+      let bt=(lTs-parseInt(probe.timestamp,16))/(lNum-pNum); if(!(bt>0.2&&bt<15))bt=2;
+      let est=Math.max(1,lNum-Math.round((lTs-target)/bt)), ts=null;
+      for(let i=0;i<3;i++){ // 추정 → 실제 timestamp 확인 → 오차 ±15분 이내까지 보정(최대 3회)
+        const b=await polyRpc(url,'eth_getBlockByNumber',['0x'+est.toString(16),false]);
+        ts=parseInt(b.timestamp,16);
+        if(Math.abs(ts-target)<=900)break;
+        est=Math.max(1,est+Math.round((target-ts)/bt));
+      }
+      const r=parsePolyReserves(await polyRpc(url,'eth_call',[{to:POLY_POOL,data:'0x0902f1ac'},'0x'+est.toString(16)]));
+      if(r.lgns>0n){polyBase={price:(Number(r.dai)/Number(r.lgns))*1e-9,ts};return true;}
+    }catch(e){}
+  }
+  return false;
+}
 async function fetchRebase(){
   for(const url of POLY_RPC){
     try{
@@ -406,10 +452,15 @@ function mountCharts(){if(chartsMounted)return;chartsMounted=true;
 
 function go(){
   // 각 소스를 독립 발사 → 도착하는 즉시 개별 렌더(전체 배치 대기 안 함)
-  tfetch(A.dex).then(function(a){
-    const p=Array.isArray(a)?(a.find(x=>x.quoteToken?.symbol==='DAI'&&x.dexId==='quickswap')||a[0]):null;
-    if(p){S.poly.price=parseFloat(p.priceUsd);S.poly.ch24=p.priceChange?.h24??null;S.poly.poolDai=p.liquidity?.quote??null;S.poly.poolLgns=p.liquidity?.base??null;}
-    stamp();uD();}).catch(function(){});
+  // 폴리곤: 메인 LP 직독이 1차, DexScreener(메인 풀 주소 고정 조회)는 RPC 전멸 시 폴백
+  fetchPolygon().then(function(ok){
+    if(ok){stamp();uD();return;}
+    return tfetch(A.dex).then(function(a){
+      const p=a?.pairs?.[0]||null;
+      if(p){S.poly.price=parseFloat(p.priceUsd);S.poly.ch24=p.priceChange?.h24??null;
+        S.poly.poolDai=p.liquidity?.quote??null;S.poly.poolLgns=p.liquidity?.base??null;}
+      stamp();uD();});
+  }).catch(function(){});
   tfetch(A.gl).then(function(g){
     if(g.tether?.krw)S.uGl=g.tether.krw;
     if(g.bitcoin)S.btc={u:g.bitcoin.usd,k:g.bitcoin.krw,ch:g.bitcoin.usd_24h_change};
@@ -429,6 +480,7 @@ function go(){
 
 function uD(){
   $('polyP').textContent=S.poly.price?f$(S.poly.price):'—';
+  if(polyBase&&S.poly.price)S.poly.ch24=(S.poly.price/polyBase.price-1)*100;
   const pc=$('polyC');pc.textContent=fP(S.poly.ch24);pc.style.color=fC(S.poly.ch24);
   $('polyPoolL').textContent=S.poly.poolLgns!=null?fNum(S.poly.poolLgns)+' LGNS':'—';
   $('polyPoolD').textContent=S.poly.poolDai!=null?fNum(S.poly.poolDai)+' DAI':'—';
@@ -480,6 +532,8 @@ setInterval(tickRebase,1000);
 go();
 fetchAnuBase().then(uD);          // 기준가 도착 즉시 24h 변동률 반영
 setInterval(fetchAnuBase,600000); // 기준 시점(24h 전)이 흐르므로 10분마다 재측정
+fetchPolyBase().then(uD);         // 폴리곤도 동일 — go()(30초)에 태우면 RPC를 헛되이 태운다
+setInterval(fetchPolyBase,600000);
 setTimeout(mountCharts,800);
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 
