@@ -52,6 +52,29 @@ export function isInternal(ip, list) {
   return String(list || "").split(",").map((s) => s.trim()).filter(Boolean).includes(ip);
 }
 
+const VID_CAP = 300;   // 같은 vid의 당일 최대 기록 수 — 무료 한도 폭주 방어
+
+export async function record(env, row, ip, ua, hint) {
+  if (!env || !env.DB) return;
+  try {
+    const vid = await makeVid(row.day, env.VID_SALT || "", ip, ua);
+    const internal = (isInternal(ip, env.INTERNAL_IPS) || hint === 1) ? 1 : 0;
+
+    const seen = await env.DB
+      .prepare("SELECT COUNT(*) AS n FROM hits WHERE day=? AND vid=?")
+      .bind(row.day, vid).first();
+    if (seen && Number(seen.n) >= VID_CAP) return;
+
+    await env.DB.prepare(
+      "INSERT INTO hits (ts,day,site,page,ev,vid,country,device,mode,ref,internal) " +
+      "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    ).bind(row.ts, row.day, row.site, row.page, row.ev, vid,
+           row.country, row.device, row.mode, row.ref, internal).run();
+  } catch (e) {
+    // 계측 실패는 조용히 삼킨다 — 재시도 큐 없음(YAGNI).
+  }
+}
+
 function cors(origin) {
   const ok = ALLOWED_ORIGINS.includes(origin);
   return {
@@ -75,7 +98,13 @@ async function collect(request, env, ctx, origin) {
   const ua = request.headers.get("User-Agent") || "";
   if (BOT_UA.test(ua)) return new Response(null, { status: 204, headers: cors(origin) });
 
-  // 저장은 Task 4에서 배선한다.
+  const row = normalize(data, {
+    now: Date.now(),
+    country: request.headers.get("CF-IPCountry") || (request.cf && request.cf.country) || "ZZ",
+    ua,
+  });
+  const ip = request.headers.get("CF-Connecting-IP") || "";
+  ctx.waitUntil(record(env, row, ip, ua, data && data.internal === 1 ? 1 : 0));
   return new Response(null, { status: 204, headers: cors(origin) });
 }
 

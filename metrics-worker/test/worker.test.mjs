@@ -132,3 +132,84 @@ test('내부 IP 판정: 목록에 있으면 true, 공백 허용', () => {
   assert.equal(isInternal('8.8.8.8', undefined), false);
   assert.equal(isInternal('', '1.1.1.1'), false);
 });
+
+/* 가짜 D1 — prepare().bind().run()/first() 만 흉내낸다. */
+function fakeDB(counts = 0) {
+  const inserts = [], queries = [];
+  return {
+    inserts, queries,
+    prepare(sql) {
+      queries.push(sql);
+      return {
+        bind(...args) {
+          return {
+            async run() { if (/^INSERT/i.test(sql.trim())) inserts.push({ sql, args }); return { success: true }; },
+            async first() { return { n: counts }; },
+            async all() { return { results: [] }; },
+          };
+        },
+      };
+    },
+  };
+}
+const ENV = (db, extra = {}) => ({ DB: db, VID_SALT: 'test-salt', ...extra });
+
+async function send(body, opts = {}, env) {
+  const pending = [];
+  const c = { waitUntil(p) { pending.push(p); } };
+  const res = await worker.fetch(hit(body, opts), env, c);
+  await Promise.all(pending);
+  return res;
+}
+
+test('수집: D1에 1행 INSERT — 컬럼 순서와 값', async () => {
+  const db = fakeDB();
+  await send({ page: 'rates', ev: 'rates:refresh', ref: 't.me', mode: 'app' }, {}, ENV(db));
+  assert.equal(db.inserts.length, 1);
+  const a = db.inserts[0].args;
+  assert.equal(a[2], 'origin-lgns');       // site
+  assert.equal(a[3], 'rates');             // page
+  assert.equal(a[4], 'rates:refresh');     // ev
+  assert.match(a[5], /^[0-9a-f]{16}$/);    // vid
+  assert.equal(a[6], 'KR');                // country
+  assert.equal(a[8], 'app');               // mode
+  assert.equal(a[9], 't.me');              // ref
+  assert.equal(a[10], 0);                  // internal
+});
+
+test('★금지 필드 회귀: 지갑주소를 보내도 D1 인자에 존재하지 않는다', async () => {
+  const db = fakeDB();
+  await send({ page: 'index', ev: 'view', addr: '0xC7Ed57d3fb98', balance: 4851 }, {}, ENV(db));
+  assert.ok(!JSON.stringify(db.inserts[0].args).includes('0xC7Ed'));
+  assert.ok(!JSON.stringify(db.inserts[0].args).includes('4851'));
+});
+
+test('내부 IP는 드롭이 아니라 internal=1로 기록', async () => {
+  const db = fakeDB();
+  await send({ page: 'index', ev: 'view' }, { ip: '222.98.140.185' },
+    ENV(db, { INTERNAL_IPS: '222.98.140.185' }));
+  assert.equal(db.inserts[0].args[10], 1);
+});
+
+test('클라이언트 internal 힌트도 1로 기록(서버 판정과 OR)', async () => {
+  const db = fakeDB();
+  await send({ page: 'index', ev: 'view', internal: 1 }, {}, ENV(db));
+  assert.equal(db.inserts[0].args[10], 1);
+});
+
+test('같은 vid의 당일 300건 초과분은 드롭(무료 한도 방어)', async () => {
+  const db = fakeDB(300);
+  await send({ page: 'index', ev: 'view' }, {}, ENV(db));
+  assert.equal(db.inserts.length, 0);
+});
+
+test('D1 바인딩이 없어도 요청은 204(앱을 절대 방해하지 않는다)', async () => {
+  const res = await send({ page: 'index', ev: 'view' }, {}, { VID_SALT: 's' });
+  assert.equal(res.status, 204);
+});
+
+test('D1이 던져도 요청은 204', async () => {
+  const db = { prepare() { throw new Error('D1 down'); } };
+  const res = await send({ page: 'index', ev: 'view' }, {}, ENV(db));
+  assert.equal(res.status, 204);
+});
