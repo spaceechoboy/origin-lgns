@@ -98,3 +98,37 @@ test('기기 판정: 모바일 UA', () => {
   const r = normalize({ page: 'index', ev: 'view' }, { ...META, ua: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)' });
   assert.equal(r.device, 'mobile');
 });
+
+import { makeVid, isInternal } from '../src/worker.js';
+
+test('vid: 같은 날·같은 IP·UA면 같은 값, 16자 hex', async () => {
+  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
+  const b = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
+  assert.equal(a, b);
+  assert.match(a, /^[0-9a-f]{16}$/);
+});
+
+test('★vid: 날짜가 바뀌면 다른 값 — 장기 추적 불가가 설계 의도', async () => {
+  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
+  const b = await makeVid('2026-07-29', 'salt', '1.2.3.4', 'UA');
+  assert.notEqual(a, b);
+});
+
+test('vid: IP나 UA가 다르면 다른 값', async () => {
+  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
+  assert.notEqual(a, await makeVid('2026-07-28', 'salt', '9.9.9.9', 'UA'));
+  assert.notEqual(a, await makeVid('2026-07-28', 'salt', '1.2.3.4', 'OTHER'));
+});
+
+test('vid: 솔트가 다르면 다른 값(솔트 유출 시 역산 방어)', async () => {
+  assert.notEqual(
+    await makeVid('2026-07-28', 'salt-a', '1.2.3.4', 'UA'),
+    await makeVid('2026-07-28', 'salt-b', '1.2.3.4', 'UA'));
+});
+
+test('내부 IP 판정: 목록에 있으면 true, 공백 허용', () => {
+  assert.equal(isInternal('222.98.140.185', '1.1.1.1, 222.98.140.185'), true);
+  assert.equal(isInternal('8.8.8.8', '1.1.1.1, 222.98.140.185'), false);
+  assert.equal(isInternal('8.8.8.8', undefined), false);
+  assert.equal(isInternal('', '1.1.1.1'), false);
+});

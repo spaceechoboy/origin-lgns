@@ -38,6 +38,20 @@ export function normalize(data, meta) {
   };
 }
 
+// 쿠키 없는 일일 익명 ID. IP·UA는 여기서 해시 재료로만 쓰이고 **저장되지 않는다**.
+// day가 재료에 들어가므로 날짜가 바뀌면 같은 사람이 다른 ID가 된다(= 장기 추적 불가, 의도된 설계).
+export async function makeVid(day, salt, ip, ua) {
+  const buf = new TextEncoder().encode(`${day}|${salt}|${ip}|${ua}`);
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(digest)].slice(0, 8)
+    .map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function isInternal(ip, list) {
+  if (!ip) return false;
+  return String(list || "").split(",").map((s) => s.trim()).filter(Boolean).includes(ip);
+}
+
 function cors(origin) {
   const ok = ALLOWED_ORIGINS.includes(origin);
   return {
