@@ -475,7 +475,9 @@ function go(){
     stamp();uD();}).catch(function(){});
   fetchAnubis().then(function(){stamp();uD();}).catch(function(){}); // 아누비스 시세 비차단
   fetchRebase().then(renderRebase).catch(function(){});
-  fetchSellTax().then(renderTax).catch(function(){});
+  // 매도세 도착 시 uD()까지 다시 돌린다 — renderTax 만 부르면 세후 실현가·매도 유리 판정이
+  // 다음 30초 틱까지 세율 미반영으로 남는다(nxy 는 이미 이렇게 동작).
+  fetchSellTax().then(function(){renderTax();uD();}).catch(function(){});
 }
 
 function uD(){
