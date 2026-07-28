@@ -109,6 +109,68 @@ export async function stats(env, days, withInternal) {
   return out;
 }
 
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[<>&"']/g, (c) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function bars(rows, total) {
+  if (!rows.length) return '<p class="dim">데이터 없음</p>';
+  const max = Math.max(...rows.map((r) => Number(r.n) || 0), 1);
+  return rows.map((r) => {
+    const n = Number(r.n) || 0;
+    const pct = total ? ((n / total) * 100).toFixed(1) : "0.0";
+    return `<div class="row"><span class="k">${esc(r.k || "—")}</span>` +
+           `<span class="bar"><i style="width:${((n / max) * 100).toFixed(1)}%"></i></span>` +
+           `<span class="n">${n} <em>${pct}%</em></span></div>`;
+  }).join("");
+}
+
+export function renderDash(d, k) {
+  const t = d.totals || { views: 0, visitors: 0 };
+  const kq = encodeURIComponent(k);
+  const daily = (d.daily || []).map((r) =>
+    `<div class="row"><span class="k">${esc(r.day)}</span>` +
+    `<span class="bar"><i style="width:${((Number(r.views) || 0) / Math.max(...(d.daily || []).map((x) => Number(x.views) || 0), 1) * 100).toFixed(1)}%"></i></span>` +
+    `<span class="n">${r.views} <em>${r.visitors}명</em></span></div>`).join("");
+
+  const sec = (title, rows) => `<section><h2>${esc(title)}</h2>${bars(rows || [], t.views)}</section>`;
+
+  return `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>origin-lgns 계측</title><style>
+:root{--bg:#050805;--card:#0e1610;--bd:rgba(159,232,112,.18);--neon:#9FE870;--tx:#E8F5E0;--dim:#9CA89A}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,system-ui,'Pretendard',sans-serif;padding:16px;line-height:1.5}
+h1{font-size:17px;color:var(--neon);margin-bottom:2px}h2{font-size:13px;color:var(--neon);margin-bottom:8px;font-weight:600}
+.dim{color:var(--dim);font-size:12px}
+.tot{display:flex;gap:10px;margin:12px 0}
+.tot div{flex:1;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.tot b{display:block;font-size:24px;color:var(--neon)}
+section{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:8px;font-size:12px;padding:2px 0}
+.k{flex:0 0 34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:1;height:8px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--neon);opacity:.75}
+.n{flex:0 0 84px;text-align:right;font-variant-numeric:tabular-nums}
+.n em{color:var(--dim);font-style:normal;font-size:11px}
+a{color:var(--neon)}
+</style></head><body>
+<h1>origin-lgns 계측</h1>
+<p class="dim">${esc(d.since)} ~ 오늘 · ${d.days}일 · 자기 트래픽 ${d.internal ? "포함" : "제외"}</p>
+<div class="tot"><div><b>${t.views || 0}</b><span class="dim">조회</span></div>
+<div><b>${t.visitors || 0}</b><span class="dim">방문자(일 단위 고유)</span></div></div>
+<p class="dim">기간: <a href="/dash?k=${kq}&days=7&internal=${d.internal}">7일</a> ·
+<a href="/dash?k=${kq}&days=14&internal=${d.internal}">14일</a> ·
+<a href="/dash?k=${kq}&days=90&internal=${d.internal}">90일</a> ·
+<a href="/dash?k=${kq}&days=${d.days}&internal=${d.internal ? 0 : 1}">자기 트래픽 ${d.internal ? "제외" : "포함"}</a></p>
+<section><h2>일별</h2>${daily || '<p class="dim">데이터 없음</p>'}</section>
+${sec("페이지", d.pages)}${sec("기능 사용", d.events)}${sec("국가", d.countries)}
+${sec("기기", d.devices)}${sec("앱/웹", d.modes)}${sec("유입", d.refs)}
+<p class="dim">쿠키·식별자 없음 · IP/UA 원본 미저장 · 지갑정보 미수집</p>
+</body></html>`;
+}
+
 function cors(origin) {
   const ok = ALLOWED_ORIGINS.includes(origin);
   return {
@@ -161,7 +223,10 @@ export default {
                      "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" },
         });
       }
-      return new Response("dash: Task 6", { status: 200 });
+      return new Response(renderDash(data, url.searchParams.get("k") || ""), {
+        headers: { "content-type": "text/html; charset=utf-8", "Cache-Control": "no-store",
+                   "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" },
+      });
     }
 
     return new Response("not found", { status: 404 });

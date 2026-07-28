@@ -279,3 +279,47 @@ test('토큰 비교는 길이가 달라도 예외 없이 false', () => {
   assert.equal(tokenOk('abc', ''), false);
   assert.equal(tokenOk('abc', 'abc'), true);
 });
+
+import { renderDash } from '../src/worker.js';
+
+const DATA = {
+  days: 14, since: '2026-07-15', internal: 0,
+  totals: { views: 120, visitors: 45 },
+  daily: [{ day: '2026-07-28', views: 10, visitors: 4 }],
+  pages: [{ k: 'index', n: 80 }], countries: [{ k: 'US', n: 50 }],
+  devices: [{ k: 'mobile', n: 90 }], modes: [{ k: 'app', n: 30 }],
+  refs: [{ k: 't.me', n: 12 }], events: [{ k: 'rates:refresh', n: 9 }],
+};
+
+test('/dash: 토큰 없으면 401', async () => {
+  const res = await worker.fetch(new Request('https://m.dev/dash'), ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal(res.status, 401);
+});
+
+test('/dash: HTML과 보호 헤더를 함께 준다', async () => {
+  const res = await worker.fetch(new Request('https://m.dev/dash?k=right'), ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /text\/html/);
+  assert.equal(res.headers.get('Cache-Control'), 'no-store');
+  assert.equal(res.headers.get('Referrer-Policy'), 'no-referrer');
+  assert.equal(res.headers.get('X-Robots-Tag'), 'noindex');
+});
+
+test('렌더: 핵심 수치가 HTML에 들어간다', () => {
+  const html = renderDash(DATA, 'right');
+  assert.match(html, /120/);            // 총 조회
+  assert.match(html, /45/);             // 고유 방문자
+  assert.match(html, /rates:refresh/);
+  assert.match(html, /t\.me/);
+});
+
+test('★XSS 회귀: 오염된 ref가 그대로 실행되지 않는다', () => {
+  const html = renderDash({ ...DATA, refs: [{ k: '<script>alert(1)</script>', n: 1 }] }, 'right');
+  assert.ok(!html.includes('<script>alert(1)</script>'), '원문 태그가 살아 있으면 안 됨');
+  assert.match(html, /&lt;script&gt;/);
+});
+
+test('렌더: 내부 트래픽 토글 링크가 현재 토큰을 유지한다', () => {
+  const html = renderDash(DATA, 'right');
+  assert.match(html, /\/dash\?k=right&days=14&internal=1/);
+});
