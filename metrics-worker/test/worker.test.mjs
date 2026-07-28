@@ -213,3 +213,69 @@ test('D1이 던져도 요청은 204', async () => {
   const res = await send({ page: 'index', ev: 'view' }, {}, ENV(db));
   assert.equal(res.status, 204);
 });
+
+import { tokenOk } from '../src/worker.js';
+
+/* 집계용 가짜 D1 — SQL 조각으로 결과를 골라 돌려준다. */
+function statsDB(sink = []) {
+  return {
+    prepare(sql) {
+      return { bind(...args) {
+        sink.push({ sql, args });
+        return {
+          async first() { return { views: 10, visitors: 4 }; },
+          async all() {
+            if (/GROUP BY day/.test(sql)) return { results: [{ day: '2026-07-28', views: 10, visitors: 4 }] };
+            return { results: [{ k: 'index', n: 7 }] };
+          },
+        };
+      } };
+    },
+  };
+}
+
+test('/stats: 토큰 없으면 401', async () => {
+  const res = await worker.fetch(new Request('https://m.dev/stats'), ENV(statsDB()), ctx);
+  assert.equal(res.status, 401);
+});
+
+test('/stats: 토큰 틀리면 401', async () => {
+  const res = await worker.fetch(new Request('https://m.dev/stats?k=wrong'),
+    ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal(res.status, 401);
+});
+
+test('/stats: 올바른 토큰이면 집계 JSON', async () => {
+  const res = await worker.fetch(new Request('https://m.dev/stats?k=right&days=7'),
+    ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal(res.status, 200);
+  const j = await res.json();
+  assert.equal(j.days, 7);
+  assert.deepEqual(j.totals, { views: 10, visitors: 4 });
+  assert.deepEqual(j.daily, [{ day: '2026-07-28', views: 10, visitors: 4 }]);
+  assert.ok(Array.isArray(j.countries) && Array.isArray(j.events));
+});
+
+test('★기본은 자기 트래픽 제외(internal<=0), internal=1이면 포함', async () => {
+  const sink = [];
+  await worker.fetch(new Request('https://m.dev/stats?k=right'), ENV(statsDB(sink), { DASH_KEY: 'right' }), ctx);
+  assert.ok(sink.every((q) => q.args[1] === 0), '기본 bind는 0');
+
+  const sink2 = [];
+  await worker.fetch(new Request('https://m.dev/stats?k=right&internal=1'), ENV(statsDB(sink2), { DASH_KEY: 'right' }), ctx);
+  assert.ok(sink2.every((q) => q.args[1] === 1), 'internal=1이면 bind 1');
+});
+
+test('days는 1~90으로 클램프', async () => {
+  const big = await worker.fetch(new Request('https://m.dev/stats?k=right&days=9999'), ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal((await big.json()).days, 90);
+  const zero = await worker.fetch(new Request('https://m.dev/stats?k=right&days=0'), ENV(statsDB(), { DASH_KEY: 'right' }), ctx);
+  assert.equal((await zero.json()).days, 14, '0이나 빈 값은 기본 14일');
+});
+
+test('토큰 비교는 길이가 달라도 예외 없이 false', () => {
+  assert.equal(tokenOk('a', 'abc'), false);
+  assert.equal(tokenOk(undefined, 'abc'), false);
+  assert.equal(tokenOk('abc', ''), false);
+  assert.equal(tokenOk('abc', 'abc'), true);
+});

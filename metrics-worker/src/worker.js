@@ -75,6 +75,40 @@ export async function record(env, row, ip, ua, hint) {
   }
 }
 
+export function tokenOk(given, expected) {
+  const a = new TextEncoder().encode(String(given == null ? "" : given));
+  const b = new TextEncoder().encode(String(expected || ""));
+  if (b.length === 0 || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+const W = "day>=? AND internal<=?";     // 모든 집계가 공유하는 조건
+const Q = {
+  daily:     `SELECT day, COUNT(*) AS views, COUNT(DISTINCT vid) AS visitors FROM hits WHERE ev='view' AND ${W} GROUP BY day ORDER BY day`,
+  pages:     `SELECT page AS k, COUNT(*) AS n FROM hits WHERE ev='view' AND ${W} GROUP BY page ORDER BY n DESC`,
+  countries: `SELECT country AS k, COUNT(*) AS n FROM hits WHERE ev='view' AND ${W} GROUP BY country ORDER BY n DESC LIMIT 12`,
+  devices:   `SELECT device AS k, COUNT(*) AS n FROM hits WHERE ev='view' AND ${W} GROUP BY device ORDER BY n DESC`,
+  modes:     `SELECT mode AS k, COUNT(*) AS n FROM hits WHERE ev='view' AND ${W} GROUP BY mode ORDER BY n DESC`,
+  refs:      `SELECT ref AS k, COUNT(*) AS n FROM hits WHERE ev='view' AND ref<>'' AND ${W} GROUP BY ref ORDER BY n DESC LIMIT 12`,
+  events:    `SELECT ev AS k, COUNT(*) AS n FROM hits WHERE ev<>'view' AND ${W} GROUP BY ev ORDER BY n DESC`,
+};
+
+export async function stats(env, days, withInternal) {
+  const d = Math.min(90, Math.max(1, Number(days) || 14));
+  const inc = withInternal ? 1 : 0;
+  const since = new Date(Date.now() - (d - 1) * 86400000).toISOString().slice(0, 10);
+  const bind = (sql) => env.DB.prepare(sql).bind(since, inc);
+
+  const totals = await bind(
+    `SELECT COUNT(*) AS views, COUNT(DISTINCT vid) AS visitors FROM hits WHERE ev='view' AND ${W}`
+  ).first();
+  const out = { days: d, since, internal: inc, totals: totals || { views: 0, visitors: 0 } };
+  for (const [key, sql] of Object.entries(Q)) out[key] = (await bind(sql).all()).results || [];
+  return out;
+}
+
 function cors(origin) {
   const ok = ALLOWED_ORIGINS.includes(origin);
   return {
@@ -115,6 +149,20 @@ export default {
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors(origin) });
     if (request.method === "POST" && url.pathname === "/") return collect(request, env, ctx, origin);
+
+    if (request.method === "GET" && (url.pathname === "/stats" || url.pathname === "/dash")) {
+      if (!tokenOk(url.searchParams.get("k"), env.DASH_KEY)) {
+        return new Response("unauthorized", { status: 401, headers: { "Cache-Control": "no-store" } });
+      }
+      const data = await stats(env, url.searchParams.get("days"), url.searchParams.get("internal") === "1");
+      if (url.pathname === "/stats") {
+        return new Response(JSON.stringify(data), {
+          headers: { "content-type": "application/json; charset=utf-8", "Cache-Control": "no-store",
+                     "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" },
+        });
+      }
+      return new Response("dash: Task 6", { status: 200 });
+    }
 
     return new Response("not found", { status: 404 });
   },
