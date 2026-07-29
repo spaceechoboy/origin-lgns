@@ -46,5 +46,8 @@ npx wrangler deploy
 ## 테스트
 
 ```bash
-cd ~/origin-lgns && node --test metrics-worker/test/ test/
+cd ~/origin-lgns && node --test "metrics-worker/test/*.mjs" "test/*.mjs"
 ```
+
+⚠ 디렉토리 인자(`node --test metrics-worker/test/ test/`)는 **Node 26에서 깨집니다**
+(디렉토리를 모듈로 로드하려다 `MODULE_NOT_FOUND`). 위 글롭 형태는 구·신 버전 모두에서 동작합니다.
