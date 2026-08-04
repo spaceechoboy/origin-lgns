@@ -50,9 +50,6 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
 .rb-val{font-family:var(--mono);font-weight:800;font-size:clamp(16px,1.5vw,22px);font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap}
 .rb-val.cd{color:var(--info);text-shadow:0 0 14px rgba(127,212,232,.3)}
 .rb-val.rate{color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.4)}
-.rb-val.prem{color:var(--text-dim)}
-.rb-val.prem.up{color:var(--neon);text-shadow:0 0 16px rgba(159,232,112,.4)}
-.rb-val.prem.down{color:var(--danger);text-shadow:0 0 16px rgba(255,107,107,.35)}
 
 /* 본문 2열 (체인) */
 .main{flex:1 1 auto;display:grid;grid-template-columns:1fr 1fr;gap:clamp(10px,1vw,16px);min-height:0}
@@ -188,7 +185,6 @@ body{background:var(--bg-0);color:var(--text);font-family:'Pretendard','Apple SD
       <span class="sts"><span class="pulse"></span>Polygon · Anubis · 30초 · <b id="lastU">로딩중…</b></span>
     </div>
     <div class="rebase-box">
-      <div class="rb-item"><span class="rb-lab">폴리곤 대비 격차</span><span class="rb-val prem" id="prem">—</span></div>
       <div class="rb-item"><span class="rb-lab">다음 리베이스까지</span><span class="rb-val cd" id="rbCd">—</span></div>
       <div class="rb-item"><span class="rb-lab">리베이스 / 에폭</span><span class="rb-val rate" id="rbRate">—</span></div>
     </div>
@@ -313,7 +309,6 @@ function fW(n){return n==null||isNaN(n)?'—':'₩'+Math.round(n).toLocaleString
 function fP(n){if(n==null||isNaN(n))return'—';return(n>=0?'+':'')+fN(n)+'%'}
 function fC(n){return n==null||isNaN(n)?'var(--text-dim)':n>=0?'var(--neon)':'var(--danger)'}
 function fNum(n){if(n==null||isNaN(n))return'—';if(n>=1e9)return fN(n/1e9,2)+'B';if(n>=1e6)return fN(n/1e6,2)+'M';if(n>=1e3)return fN(n/1e3,1)+'K';return fN(n,0)}
-function premiumPct(p,a){return (p&&a)?((a-p)/p)*100:null;}
 // 타임아웃 fetch → json (한 엔드포인트가 배치를 붙잡지 못하게)
 function tfetch(url,ms){const c=new AbortController();const t=setTimeout(function(){c.abort();},ms||8000);
   return fetch(url,{signal:c.signal}).then(function(r){return r.json();}).finally(function(){clearTimeout(t);});}
@@ -490,8 +485,6 @@ function uD(){
   $('anuP').textContent=S.anu.price?f$(S.anu.price):'—';
   S.anu.ch24=(anuBase&&S.anu.price)?(S.anu.price/anuBase.price-1)*100:null;
   const ac=$('anuC');ac.textContent=fP(S.anu.ch24);ac.style.color=fC(S.anu.ch24);
-  const pr=premiumPct(S.poly.price,S.anu.price);const pe=$('prem');
-  if(pr==null){pe.textContent='—';pe.className='rb-val prem';}else{pe.textContent=(pr>=0?'▲ ':'▼ ')+fP(pr);pe.className='rb-val prem '+(pr>=0?'up':'down');}
   $('anuR0').textContent=S.anu.poolLgns!=null?fNum(S.anu.poolLgns)+' LGNS':'—';
   $('anuR1').textContent=S.anu.poolDai!=null?fNum(S.anu.poolDai)+' DAI':'—';
   $('uU').textContent=S.fx.live?fW(S.fx.live):'—';$('uB').textContent=S.uBi?fW(S.uBi):'—';
