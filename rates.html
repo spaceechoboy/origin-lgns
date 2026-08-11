@@ -124,7 +124,7 @@ body{overflow:hidden;display:flex;flex-direction:column}
   <div>
     <div class="logo"><img class="brand-sym" src="assets/symbol.png" alt=""> Origin LGNS</div>
     <nav class="nav-tabs" style="margin:6px 0 2px"><a class="nav-tab" href="index.html">시세</a><a class="nav-tab active" href="rates.html">이율</a><a class="nav-tab" href="contact.html">제안·문의</a></nav>
-    <div class="sts"><span class="pulse"></span>온체인 라이브 · Polygon 137 · Anubis 6714 · <b id="lastU">로딩중…</b> <span id="blk" style="color:var(--text-faint)"></span></div>
+    <div class="sts"><span class="pulse"></span><span id="liveLbl">온체인 읽는 중…</span> · Polygon 137 · Anubis 6714 · <b id="lastU">로딩중…</b> <span id="blk" style="color:var(--text-faint)"></span></div>
   </div>
   <button class="br" id="btnR" onclick="go()">🔄 새로고침</button>
 </div></div>
@@ -155,7 +155,7 @@ body{overflow:hidden;display:flex;flex-direction:column}
       <b>이율 2종</b> — ① 일반 리베이스(복리, 체인 단일·6h epoch ×4/day — 장기 락업 원금에도 동일 적용, 별도 '장기 base' 율은 존재하지 않음) · ② Extra interest(단리, 상품 전용·12h epoch ×2/day, Turbine 입력).<br>
       <b>③ 일일 합산</b> = ①+② 단순 합 · <b>④ 단순 계산(한 달·1년)</b> = 리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). <b>추가보상을 수령해 일반 스테이킹으로 전환(복리 편입)하면 실제 수익률은 이 값보다 훨씬 커진다.</b><br>
       <b>Sell Tax·Turbine Fee</b>는 매 새로고침 온체인 실측(라이브).<br>
-      ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·Sell Tax·Turbine Fee는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 첫 표본은 세션 baseline(2026-06-15 교차검증)으로 표시 후 라이브 델타로 자기수정. read-only.
+      ⚠ 전부 <b>명목 LGNS</b> 기준 · extra·rebase·Sell Tax·Turbine Fee는 모두 <b>운영자 가변 레버</b>(현재값만 신뢰) · real-cash 노출은 별개 판단. 율은 <b>첫 로드에 아카이브(과거 블록) 델타로 즉시 실측</b>하며, 분모는 항상 온체인 epoch 카운터다. 아카이브 조회가 실패한 항목만 폴백 기준값으로 표시되고 그 행에 <span class="sttag seed">기준값</span> 배지가 붙는다. read-only.
     </div>
   </div></div>
 
@@ -192,20 +192,20 @@ const CFG={
     slotGI:"0x6b", slotDenom:"0x71", slotEpoch:"0x6c",
   },
   sel:{ epoch:"0x900cf0cf", circulating:"0x9358928b", totalSupply:"0x18160ddd",
-    getReserves:"0x0902f1ac", silenceUSDT:"0xbffc7b0c", index:"0x2986c0e5", curEpoch:"0x76671808",
+    getReserves:"0x0902f1ac", silenceUSDT:"0xbffc7b0c", curIndex:"0x26987b60", curEpoch:"0x76671808",
     extraInterest:"0xb01d3563", stakes:"0x584b62a1", feeRatio:"0x41744dd4", extraFeeRatio:"0x3c336ff4" },
-  // 세션 baseline (2026-06-15 교차검증) — 첫 로드 즉시표시, 라이브 델타로 갱신
+  // 폴백 baseline (2026-08-12 온체인 재측정) — 아카이브 조회가 실패했을 때만 쓰이며 '기준값' 배지로 드러난다.
   seed:{
-    extraDay:{p360:0.2400,p600:0.1566,a360:0.3000,a600:0.3900},
-    extraEp :{p360:0.1200,p600:0.0783,a360:0.1500,a600:0.1950},
-    rebaseDay:{poly:0.5994,anu:0.5981}, rebaseEp:{poly:0.1499,anu:0.1495},
-    sellTax:{poly:0.05,anu:0.2875}, turbFee:{poly:0.003,anu:0.053}, // Polygon ≈0.3%(수수료 無) / Anubis ≈5.3%(매수 0.3% + 프로토콜 5%, 2026-06-15 실거래 디코드 실증)
+    extraDay:{p360:0.1600,p600:0.1198,a360:0.3000,a600:0.3900},
+    extraEp :{p360:0.0800,p600:0.0599,a360:0.1500,a600:0.1950},
+    rebaseDay:{poly:0.5232,anu:0.5232}, rebaseEp:{poly:0.1308,anu:0.1308},
+    sellTax:{poly:0.05,anu:0.3825}, turbFee:{poly:0.003,anu:0.053}, // Polygon ≈0.3%(수수료 無) / Anubis ≈5.3%(매수 0.3% + 프로토콜 5%, 2026-06-15 실거래 디코드 실증)
   },
   EXTRA_EP_PER_DAY:2, REB_EP_PER_DAY:4,
 };
 const PROD=[
   {k:"p360",chain:"poly",name:"Polygon 360일",term:"31,104,000s ≈360d"},
-  {k:"p600",chain:"poly",name:"Polygon 600일",term:"25,920,000blk ≈600d"},
+  {k:"p600",chain:"poly",name:"Polygon 600일",term:"51,840,000s ≈600d"},   // termSeconds() 0x48f1cd7b 실측
   {k:"a360",chain:"anu", name:"Anubis 360일", term:"31,104,000s ≈360d"},
   {k:"a600",chain:"anu", name:"Anubis 600일", term:"51,840,000s ≈600d"},
 ];
@@ -291,24 +291,46 @@ const addr32=a=>a.toLowerCase().replace('0x','').padStart(64,'0');
 const hb=h=>BigInt(h&&h!=='0x'?h:'0x0');
 function words(hex){const h=(hex||'').replace(/^0x/,'');const o=[];for(let i=0;i<h.length;i+=64)o.push(hb('0x'+(h.slice(i,i+64)||'0')));return o;}
 async function rpc(url,method,params){const r=await fetch(url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});const j=await r.json();if(j.error)throw new Error(JSON.stringify(j.error));return j.result;}
-async function call(chain,to,data){let e;for(const u of CFG[chain].rpcs){try{return await rpc(u,'eth_call',[{to,data},'latest']);}catch(x){e=x;}}throw e;}
-async function storage(chain,addr,slot){let e;for(const u of CFG[chain].rpcs){try{return await rpc(u,'eth_getStorageAt',[addr,slot,'latest']);}catch(x){e=x;}}throw e;}
+// 한 요청 묶음은 반드시 *같은 엔드포인트*에서 — 아카이브 조회 시 두 슬롯이 서로 다른 노드(하나는 과거·
+// 하나는 latest)에서 오면 델타가 조용히 오염된다.
+async function onOne(chain,fn){let e;for(const u of CFG[chain].rpcs){try{return await fn(u);}catch(x){e=x;}}throw e;}
+async function call(chain,to,data,blk){return onOne(chain,u=>rpc(u,'eth_call',[{to,data},blk||'latest']));}
+async function storage(chain,addr,slot,blk){return onOne(chain,u=>rpc(u,'eth_getStorageAt',[addr,slot,blk||'latest']));}
 async function blkNum(chain){for(const u of CFG[chain].rpcs){try{return Number(hb(await rpc(u,'eth_blockNumber',[])));}catch(x){}}return null;}
+
+// ── 아카이브 델타 ──────────────────────────────────────────────────────────────
+// 과거 블록에서 같은 값을 다시 읽어 **첫 페인트에** 정확한 epoch당 증분을 낸다(35분 대기 불필요).
+// ★ 경과시간 ÷ 가정에폭(6h/12h) 절대 금지 — 증분의 분모는 반드시 온체인 epoch 카운터 차이다.
+//   아래 시간(h)은 '과거 블록 후보'를 고르는 탐색 힌트일 뿐이고, 율에는 실제 Δepoch만 들어간다.
+const BACK_HRS=[8,16,32,64];
+let _clk={};
+function clk(chain){                       // 블록시간 실측(하드코딩 금지 — 체인이 바꾼 이력 있음)
+  if(chain in _clk) return _clk[chain];
+  return _clk[chain]=onOne(chain,async u=>{
+    const bn=Number(hb(await rpc(u,'eth_blockNumber',[])));
+    const [b1,b0]=await Promise.all([rpc(u,'eth_getBlockByNumber',['0x'+bn.toString(16),false]),
+                                     rpc(u,'eth_getBlockByNumber',['0x'+(bn-1000).toString(16),false])]);
+    const sec=(Number(hb(b1.timestamp))-Number(hb(b0.timestamp)))/1000;
+    if(!(sec>0)) throw new Error('blockclock');
+    return {bn,sec};
+  }).catch(()=>null);
+}
+// at(blk) → {ep, ...} | null. 반환 {prev,dEp} 또는 null(=아카이브 미지원/실패 → 호출자가 폴백).
+async function archiveDelta(chain,at,now){
+  const c=await clk(chain); if(!c||!now||!now.ep) return null;
+  for(const h of BACK_HRS){
+    const back=Math.round(h*3600/c.sec); if(back>=c.bn) break;
+    let prev=null; try{ prev=await at('0x'+(c.bn-back).toString(16)); }catch(e){}
+    if(!prev||!prev.ep) continue;                       // 프루닝 노드가 0을 준 경우 배제
+    const dEp=now.ep-prev.ep;
+    if(dEp>=1&&dEp<=24) return {prev,dEp};              // dEp==0 → 아카이브 미지원(latest 재응답) → 더 멀리
+  }
+  return null;
+}
 
 // localStorage delta cache: 누적 metric(acc)이 epoch마다 증가 → 시간당 증가율(%/day)
 function cg(k){try{return JSON.parse(localStorage.getItem('lgnsr:'+k));}catch(e){return null;}}
 function cs(k,v){try{localStorage.setItem('lgnsr:'+k,JSON.stringify(v));}catch(e){}}
-function rateFromAcc(key,acc,seedDay){
-  const prev=cg(key), now=Date.now();
-  if(!prev){ cs(key,{acc,ts:now,perDay:seedDay,live:false}); return {perDay:seedDay,status:'seed'}; }
-  if(acc>prev.acc){                       // epoch 증분 발생 → 실측
-    const days=(now-prev.ts)/86400000;
-    if(days>=0.18){ const perDay=(acc-prev.acc)*100/days; cs(key,{acc,ts:now,perDay,live:true}); return {perDay,status:'live'}; }
-    return {perDay:prev.perDay||seedDay, status:prev.live?'live':'wait'}; // 표본 너무 짧음 — baseline ts 보존
-  }
-  if(acc<prev.acc){ cs(key,{acc,ts:now,perDay:seedDay,live:false}); return {perDay:seedDay,status:'seed'}; } // 클레임 리셋 → 재기준
-  return {perDay:prev.perDay||seedDay, status:prev.live?'live':'wait'}; // 같은 epoch — 아직 실측 전이면 검증대기
-}
 
 // ── 추가보상(extra) 다음 에폭 ETA — 온체인 타이머 없음(운영자 크론 ~12h, 하루 2회). 관측 전환시각+간격으로 자기보정 추정 ──
 const EXTRA_NOMINAL_MS=12*3600*1000;
@@ -343,6 +365,8 @@ function netEff(extraDay,rec){ return extraDay*Math.max(rec,0)*1; } // 음수 �
 function rawNet(extraDay,rec){ return extraDay*rec; }
 function rebCompound(perEp,days){ return (Math.pow(1+perEp/100,CFG.REB_EP_PER_DAY*days)-1)*100; } // 리베이스 에폭 복리 누적(%)
 function simpleYield(rebPerEp,extraPerDay,days){ return rebCompound(rebPerEp,days)+extraPerDay*days; } // 복리 + extra 단리(수령 전 명목, %)
+function perEpGi(dGi,dEp,denom){ return dGi/dEp/denom*100; }                       // extra=단리 → 산술 증분
+function perEpIdx(idxNow,idxPrev,dEp){ return (Math.pow(idxNow/idxPrev,1/dEp)-1)*100; } // rebase=복리 → 기하 평균
 
 function runSelfTests(){
   let ok=true; const chk=(c,m)=>{if(!c){ok=false;console.error('SELFTEST FAIL:',m);}};
@@ -358,6 +382,10 @@ function runSelfTests(){
   chk(Math.abs(spotFromReserves('poly',145845869810072400000000000n,55998319335534200n)-2.6045)<0.01,'poly spot');
   chk(Math.abs(spotFromReserves('anu',36361161864700000n,147357506548200000000000000n)-4.0526)<0.01,'anu spot');
   chk(toHex32(1000000000)==='000000000000000000000000000000000000000000000000000000003b9aca00','encode 1e9');
+  // 아카이브 델타 산술 — 2026-08-12 실측 스냅샷(blk P#91,847,390 / A#10,948,079)
+  chk(Math.abs(perEpGi(255600000-254000000,2,1e9)-0.0800)<1e-6,'archive perEp p360');
+  chk(Math.abs(perEpGi(583660000-582462000,2,1e9)-0.0599)<1e-4,'archive perEp p600');
+  chk(Math.abs(perEpIdx(988.933949872,983.740114696,4)-0.1316)<2e-3,'archive perEp anu rebase');
   console.log(ok?'✅ self-tests passed':'❌ self-tests failed'); return ok;
 }
 
@@ -366,6 +394,7 @@ const S={ poly:{}, anu:{}, extra:{}, block:{} };
 function seedState(){
   S.poly.sellTax=CFG.seed.sellTax.poly; S.anu.sellTax=CFG.seed.sellTax.anu;
   S.poly.turbFee=CFG.seed.turbFee.poly; S.anu.turbFee=CFG.seed.turbFee.anu;
+  S.poly.taxSt=S.anu.taxSt=S.poly.turbSt=S.anu.turbSt='seed';
   S.poly.reb={perDay:CFG.seed.rebaseDay.poly,perEp:CFG.seed.rebaseEp.poly,status:'seed'};
   S.anu.reb ={perDay:CFG.seed.rebaseDay.anu, perEp:CFG.seed.rebaseEp.anu, status:'seed'};
   PROD.forEach(p=>{S.extra[p.k]={perDay:CFG.seed.extraDay[p.k],perEp:CFG.seed.extraEp[p.k],status:'seed'};});
@@ -396,46 +425,54 @@ async function readRebasePoly(){
   const perEp=distribute/circ*100; return {perEp,perDay:perEp*CFG.REB_EP_PER_DAY,status:'live'};
 }
 async function readRebaseAnu(){
-  // ★ 리베이스도 *온체인 epoch 카운터*(오라클 currentEpoch)로 정확 측정 — 벽시계 ÷days 드리프트 제거.
-  //   perEp = (idx/prev.idx − 1) ÷ Δepoch. (idx≈713, 오라클 6h epoch → REB_EP_PER_DAY=4)
-  const idx=Number(hb(await call('anu',CFG.anu.slgns,CFG.sel.index)))/1e9;   // 인덱스(≈713)
-  const ep=Number(hb(await call('anu',ORACLE_ANU,CFG.sel.curEpoch)));        // 오라클 currentEpoch 카운터
+  // ★ 아카이브 우선: 오라클 currentIndex()/currentEpoch()를 현재+과거 두 시점에서 읽어 첫 페인트에 확정.
+  //   perEp = (idx_now/idx_prev)^(1/Δepoch) − 1 (복리). Δ분모는 온체인 epoch 카운터만 쓴다.
+  const at=async blk=>onOne('anu',async u=>{
+    const [i,e]=await Promise.all([rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curIndex},blk]),
+                                   rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curEpoch},blk])]);
+    const idx=Number(hb(i))/1e9, ep=Number(hb(e));
+    return idx>0&&ep>0?{idx,ep}:null;
+  });
+  const now=await at('latest'); if(!now) throw new Error('anu oracle');
+  const {idx,ep}=now;
   const k='reb:anu', prev=cg(k), se=CFG.seed.rebaseEp.anu;
   const out=(perEp,status)=>({perDay:perEp*CFG.REB_EP_PER_DAY,perEp,status});
-  if(!prev||typeof prev.idx!=='number'||typeof prev.ep!=='number'){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(벽시계)캐시 → 재기준
-  if(ep>prev.ep){ const perEp=(idx/prev.idx-1)*100/(ep-prev.ep);            // ★ 상대성장 ÷ Δepoch(온체인)
+  const d=await archiveDelta('anu',at,now);
+  if(d&&d.prev.idx>0&&idx>d.prev.idx){ const perEp=perEpIdx(idx,d.prev.idx,d.dEp);
+    cs(k,{idx,ep,perEp,live:true}); return out(perEp,'live'); }
+  // 폴백: 아카이브 미지원/실패 → 기존 localStorage 델타(첫 방문은 '기준값'으로 화면에 드러남)
+  if(!prev||typeof prev.idx!=='number'||typeof prev.ep!=='number'){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); }
+  if(ep>prev.ep){ const perEp=perEpIdx(idx,prev.idx,ep-prev.ep);
                   cs(k,{idx,ep,perEp,live:true}); return out(perEp,'live'); }
   if(idx<prev.idx){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); } // 인덱스 감소(이상) → 재기준
   return out((prev.perEp)||se, prev.live?'live':'wait');                     // 같은 epoch — 직전 실측 유지
 }
-async function readExtraPoly(prod){ // prod: p360|p600 — globalIndex(0x6a)/epoch(0x6b) 직접, denom 1e9
-  // 아카이브 검증(2026-06-17): inc 783000(p600)/1200000(p360) ÷ 1e9 = seed, epoch 12.00h.
-  // 기준-스테이커 벽시계 방식은 측정창이 epoch 경계와 어긋나 ~6.5% 드리프트 → epoch 카운터로 정확화(Anubis와 동일).
-  const c=prod==='p360'?CFG.poly.c360:CFG.poly.c600, denom=1e9;
-  const gi=Number(hb(await storage('poly',c,CFG.poly.slotGI)));        // 0x6a globalIndex 누적
-  const ep=Number(hb(await storage('poly',c,CFG.poly.slotEpoch))); if(prod==='p360')trackExtraEpoch('poly',ep);     // 0x6b extra epoch 카운터
+// extra(단리) — poly/anu 동일 구조: ΔglobalIndex ÷ Δepoch ÷ denom. 아카이브 우선, 실패 시 localStorage 델타.
+// 벽시계 ÷days는 extra epoch이 11~13h로 교차해 ±8% 드리프트 → 온체인 epoch 카운터만 분모로 쓴다.
+async function readExtra(chain,prod){       // prod: p360|p600|a360|a600
+  const C=CFG[chain], c=prod.endsWith('360')?C.c360:C.c600;
+  let denom=1e9;
+  if(C.slotDenom){ try{ denom=Number(hb(await storage(chain,c,C.slotDenom)))||1e9; }catch(e){} }
+  const at=async blk=>onOne(chain,async u=>{
+    const [g,e]=await Promise.all([rpc(u,'eth_getStorageAt',[c,C.slotGI,blk]),
+                                   rpc(u,'eth_getStorageAt',[c,C.slotEpoch,blk])]);
+    const gi=Number(hb(g)), ep=Number(hb(e));
+    return gi>0&&ep>0?{gi,ep}:null;
+  });
+  const now=await at('latest'); if(!now) throw new Error('extra '+prod);
+  const {gi,ep}=now;
+  if(prod==='p360'||prod==='a360') trackExtraEpoch(chain,ep);
   const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
   const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
-  if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
-  if(ep>prev.ep){ const perEp=(gi-prev.gi)/(ep-prev.ep)/denom*100;     // ★ Δgi ÷ Δepoch ÷ denom
+  const d=await archiveDelta(chain,at,now);
+  if(d&&gi>d.prev.gi){ const perEp=perEpGi(gi-d.prev.gi,d.dEp,denom);
+    cs(k,{gi,ep,perEp,live:true}); return out(perEp,'live'); }
+  // 폴백
+  if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); }
+  if(ep>prev.ep){ const perEp=perEpGi(gi-prev.gi,ep-prev.ep,denom);
                   cs(k,{gi,ep,perEp,live:true}); return out(perEp,'live'); }
   if(gi<prev.gi){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 리셋/이상 → 재기준
-  return out((prev.perEp)||se, prev.live?'live':'wait');               // 같은 epoch — 직전 실측 유지
-}
-async function readExtraAnu(prod){ // prod: a360|a600
-  // ★ per-epoch는 *온체인 epoch 카운터*(slot 0x6c)로 직접 측정. 벽시계 ÷days는 extra epoch이
-  //   11~13h로 교차(평균12h)해 ±8% 드리프트 → ΔglobalIndex ÷ Δepoch ÷ denom = 정확한 epoch당 증분.
-  const c=prod==='a360'?CFG.anu.c360:CFG.anu.c600;
-  const gi=Number(hb(await storage('anu',c,CFG.anu.slotGI)));            // globalIndex(0x6b) 누적
-  let denom=Number(hb(await storage('anu',c,CFG.anu.slotDenom))); if(!denom)denom=1e9;
-  const ep=Number(hb(await storage('anu',c,CFG.anu.slotEpoch))); if(prod==='a360')trackExtraEpoch('anu',ep);        // extra epoch 카운터(0x6c)
-  const k='extra:'+prod, prev=cg(k), se=CFG.seed.extraEp[prod];
-  const out=(perEp,status)=>({perDay:perEp*CFG.EXTRA_EP_PER_DAY,perEp,status});
-  if(!prev||typeof prev.gi!=='number'||typeof prev.ep!=='number'){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 최초/구버전(acc)캐시 → 재기준
-  if(ep>prev.ep){ const perEp=(gi-prev.gi)/(ep-prev.ep)/denom*100;       // ★ Δgi ÷ Δepoch ÷ denom
-                  cs(k,{gi,ep,perEp,live:true}); return out(perEp,'live'); }
-  if(gi<prev.gi){ cs(k,{gi,ep,perEp:se,live:false}); return out(se,'seed'); } // 리셋/이상 → 재기준
-  return out((prev.perEp)||se, prev.live?'live':'wait');                 // 같은 epoch — 직전 실측 유지
+  return out((prev.perEp)||se, prev.live?'live':'wait');                      // 같은 epoch — 직전 실측 유지
 }
 
 // ───────────────────────── render ─────────────────────────
@@ -456,39 +493,55 @@ function renderChain(chain){
     const ex=S.extra[p.k];
     const sumDay=reb.perDay+ex.perDay;
     const m30=simpleYield(reb.perEp,ex.perDay,30), y365=simpleYield(reb.perEp,ex.perDay,365);
+    // ③④는 ①②의 파생값 — 입력이 실측이 아니면 그 사실을 큰 숫자 옆에 그대로 달아준다(경고 없는 ④ = 오독의 주범).
+    const dstat=[reb.status,ex.status].filter(s=>s!=='live').sort()[0], dtag=dstat?sttag(dstat):'';
     html+=`<div class="prod">
       <div class="prod-h"><span class="prod-t">${p.k.endsWith('360')?'360일 LONG':'600일 LONG'}</span><span class="prod-meta">${p.term}</span></div>
       ${rateRow('① 일반 리베이스 (복리)',reb.perDay,reb.perEp,6,'',sttag(reb.status),'reb:'+chain)}
       ${rateRow('② Extra interest (단리)',ex.perDay,ex.perEp,12,'hot',sttag(ex.status),'extra:'+p.k)}
-      <div class="rrow"><span class="rl">③ 일일 합산 (①+②)</span><span class="rv hot">${pct(sumDay,4)}/day<span class="sub">리베이스+추가보상</span></span></div>
-      <div class="rrow" title="리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). 추가보상을 수령해 일반 스테이킹으로 전환하면 실제 수익률은 이보다 훨씬 커짐"><span class="rl">④ 단순 계산 <span class="eqtag">한 달·1년</span></span><span class="rv">+${fN(m30,1)}% · +${fN(y365,0)}%<span class="sub">30d·365d</span></span></div>
+      <div class="rrow"><span class="rl">③ 일일 합산 (①+②)</span><span class="rv hot">${pct(sumDay,4)}/day${dtag}<span class="sub">리베이스+추가보상</span></span></div>
+      <div class="rrow" title="리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). 추가보상을 수령해 일반 스테이킹으로 전환하면 실제 수익률은 이보다 훨씬 커짐"><span class="rl">④ 단순 계산 <span class="eqtag">한 달·1년</span></span><span class="rv">+${fN(m30,1)}% · +${fN(y365,0)}%${dtag}<span class="sub">30d·365d</span></span></div>
     </div>`;
   });
   $(chain==='poly'?'polyBody':'anuBody').innerHTML=html;
   // badges
-  setBadge(chain==='poly'?'polyTax':'anuTax','Sell Tax',(chain==='poly'?S.poly.sellTax:S.anu.sellTax)*100,'%',v=>v>=15?'hi':(v>=50?'hi':'warn'));
-  const tf=(chain==='poly'?S.poly.turbFee:S.anu.turbFee)*100;
-  setBadge(chain==='poly'?'polyTurb':'anuTurb','Turbine Fee',tf,'%',v=>v>=10?'hi':(v>=1?'warn':'ok'));
+  const C=S[chain];
+  setBadge(chain==='poly'?'polyTax':'anuTax','Sell Tax',C.sellTax*100,'%',v=>v>=15?'hi':(v>=50?'hi':'warn'),C.taxSt);
+  setBadge(chain==='poly'?'polyTurb':'anuTurb','Turbine Fee',C.turbFee*100,'%',v=>v>=10?'hi':(v>=1?'warn':'ok'),C.turbSt);
 }
-function setBadge(id,lab,v,unit,cls){const el=$(id);if(!el)return;if(v==null||isNaN(v)){el.textContent=lab+' —';el.className='bdg';return;}el.textContent=lab+' '+fN(v,2)+unit;el.className='bdg '+cls(v);}
+// st: 'live'면 배지만, 아니면 seed/wait 배지를 붙여 RPC 실패한 시드값이 라이브로 오독되지 않게 한다.
+function setBadge(id,lab,v,unit,cls,st){const el=$(id);if(!el)return;
+  if(v==null||isNaN(v)){el.textContent=lab+' —';el.className='bdg';return;}
+  el.innerHTML=lab+' '+fN(v,2)+unit+(st&&st!=='live'?sttag(st):'');el.className='bdg '+cls(v);}
 
-function renderAll(){ renderChain('poly'); renderChain('anu'); }
+// 헤더는 실제 상태만 주장한다 — 하나라도 시드/검증대기면 '온체인 라이브'라고 쓰지 않는다.
+function renderHdr(){
+  const el=$('liveLbl'); if(!el) return;
+  const sts=[S.poly.reb.status,S.anu.reb.status,S.poly.taxSt,S.anu.taxSt,S.poly.turbSt,S.anu.turbSt]
+    .concat(PROD.map(p=>S.extra[p.k].status));
+  const bad=sts.filter(s=>s&&s!=='live').length;
+  el.textContent=bad?('⚠ '+bad+'항목 기준값(미실측)'):'온체인 라이브';
+  el.style.color=bad?'var(--warn)':'';
+  el.title=bad?'아카이브 조회 실패로 폴백 중 — 해당 값은 행 옆 배지(기준값/검증대기)로 표시됩니다':'전 항목 온체인 실측';
+}
+function renderAll(){ renderChain('poly'); renderChain('anu'); renderHdr(); }
 
 // ───────────────────────── boot / refresh ─────────────────────────
 async function go(){
   if (window.px) px.ev('rates:refresh');
   const b=$('btnR'); if(b){b.disabled=true;b.textContent='⏳ 읽는 중…';}
+  _clk={};                                   // 블록클럭 캐시는 새로고침마다 폐기(bn이 낡음)
   const tasks=[
-    ['poly.sellTax',()=>readSellTax('poly').then(v=>S.poly.sellTax=v)],
-    ['anu.sellTax', ()=>readSellTax('anu').then(v=>S.anu.sellTax=v)],
-    ['poly.turbFee',()=>readTurbFee('poly').then(v=>S.poly.turbFee=v)],
-    ['anu.turbFee', ()=>readTurbFee('anu').then(v=>S.anu.turbFee=v)],
+    ['poly.sellTax',()=>readSellTax('poly').then(v=>{S.poly.sellTax=v;S.poly.taxSt='live';})],
+    ['anu.sellTax', ()=>readSellTax('anu').then(v=>{S.anu.sellTax=v;S.anu.taxSt='live';})],
+    ['poly.turbFee',()=>readTurbFee('poly').then(v=>{S.poly.turbFee=v;S.poly.turbSt='live';})],
+    ['anu.turbFee', ()=>readTurbFee('anu').then(v=>{S.anu.turbFee=v;S.anu.turbSt='live';})],
     ['poly.reb',    ()=>readRebasePoly().then(v=>S.poly.reb=v)],
     ['anu.reb',     ()=>readRebaseAnu().then(v=>S.anu.reb=v)],
-    ['extra.p360',  ()=>readExtraPoly('p360').then(v=>S.extra.p360=v)],
-    ['extra.p600',  ()=>readExtraPoly('p600').then(v=>S.extra.p600=v)],
-    ['extra.a360',  ()=>readExtraAnu('a360').then(v=>S.extra.a360=v)],
-    ['extra.a600',  ()=>readExtraAnu('a600').then(v=>S.extra.a600=v)],
+    ['extra.p360',  ()=>readExtra('poly','p360').then(v=>S.extra.p360=v)],
+    ['extra.p600',  ()=>readExtra('poly','p600').then(v=>S.extra.p600=v)],
+    ['extra.a360',  ()=>readExtra('anu','a360').then(v=>S.extra.a360=v)],
+    ['extra.a600',  ()=>readExtra('anu','a600').then(v=>S.extra.a600=v)],
     ['block.poly',  ()=>blkNum('poly').then(v=>S.block.poly=v)],
     ['block.anu',   ()=>blkNum('anu').then(v=>S.block.anu=v)],
   ];
