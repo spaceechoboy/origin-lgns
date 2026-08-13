@@ -144,16 +144,13 @@ body{overflow:hidden;display:flex;flex-direction:column}
 
 <div class="ntc-ov" id="ntcOv" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ntcT">
   <div class="ntc">
-    <div class="ntc-h"><div class="ntc-t" id="ntcT">📢 공지 — 아누비스 리베이스율 하락 반영 (2026-08-13)</div></div>
+    <div class="ntc-h"><div class="ntc-t" id="ntcT">📢 공지 — 아누비스 리베이스율 갱신 (2026-08-13)</div></div>
     <div class="ntc-b">
       <ul>
-        <li>아누비스 체인 리베이스율은 <b>7월 말 실제로 내려갔습니다</b>: <span class="num">0.150%</span> → 현재 <span class="num ok">0.130%대/6h</span>.</li>
-        <li>원인: 7월 말 <b>프로토콜이 회당 지급량을 줄였고</b>(주요인), 스테이킹 총량이 늘면서 몫이 옅어졌습니다(부요인).</li>
-        <li>그런데 이 화면은 내려가기 전 값을 보여줬습니다 — 약 <b>07-25 ~ 08-13</b> 동안 최대 약 <b>20%</b> 높게 표시. (Polygon 리베이스·Extra interest·Sell Tax 등 나머지는 정확했습니다.)</li>
-        <li>이유: 첫 화면은 저장해 둔 값을 쓰고, 재방문 시에는 <b>지난 방문 이후 전체 평균</b>을 보여주는 구조였습니다 — 오랜만에 오실수록 옛 높은 값이 섞였습니다.</li>
-        <li>수정: 이제 <b>첫 화면부터 블록체인에서 직접 읽어</b> 변동이 바로 반영됩니다.</li>
+        <li>아누비스 체인 리베이스율이 <b>7월 말 내려갔습니다</b>: <span class="num">0.150%</span> → 현재 <span class="num ok">0.130%대/6h</span>. 프로토콜이 회당 지급량을 조정한 것이 주된 이유입니다.</li>
+        <li>이 화면의 아누비스 리베이스 표시가 <b>그 변동을 뒤늦게 따라갔습니다</b>. 측정 방식을 <b>블록체인 직접 읽기</b>로 바꿔, 이제 변동이 곧바로 반영됩니다.</li>
       </ul>
-      혼란을 드려 죄송합니다. 모든 값은 각 행의 🔗에서 직접 확인하실 수 있습니다.
+      값 확인에 불편을 드렸다면 죄송합니다. 모든 값은 각 행의 🔗에서 직접 확인하실 수 있습니다.
     </div>
     <div class="ntc-f"><button class="ntc-x" onclick="ntcClose()">닫기</button></div>
   </div>
