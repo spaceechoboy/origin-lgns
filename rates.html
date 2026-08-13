@@ -40,6 +40,19 @@ body{min-height:100vh;background:radial-gradient(ellipse 1200px 600px at 50% -20
 .bdg.warn{color:var(--warn);background:rgba(255,184,77,.10);border-color:rgba(255,184,77,.35)}
 .bdg.hi{color:var(--danger);background:rgba(255,107,107,.12);border-color:rgba(255,107,107,.4)}
 .bdg.ok{color:var(--neon);background:rgba(159,232,112,.10)}
+/* notice popup */
+.ntc-ov{position:fixed;inset:0;z-index:200;background:rgba(5,8,5,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
+.ntc{max-width:560px;width:100%;max-height:82vh;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border-strong);border-radius:14px;box-shadow:0 0 48px rgba(159,232,112,.15)}
+.ntc-h{padding:14px 18px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(255,184,77,.08),transparent 70%)}
+.ntc-t{font-size:14px;font-weight:800;color:var(--warn)}
+.ntc-b{padding:14px 18px;font-size:12.5px;color:var(--text-dim)}
+.ntc-b b{color:var(--text)}
+.ntc-b .num{font-family:var(--mono);color:var(--warn);font-weight:700}
+.ntc-b .num.ok{color:var(--neon)}
+.ntc-b ul{margin:6px 0 10px 18px}
+.ntc-b li{margin:3px 0}
+.ntc-x{padding:9px 22px;border-radius:9px;border:none;background:var(--neon);color:var(--bg-0);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+.ntc-f{padding:0 18px 16px;text-align:right}
 /* ranking */
 .rk{display:flex;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid rgba(159,232,112,.06)}
 .rk:last-child{border-bottom:none}
@@ -129,6 +142,36 @@ body{overflow:hidden;display:flex;flex-direction:column}
   <button class="br" id="btnR" onclick="go()">🔄 새로고침</button>
 </div></div>
 
+<div class="ntc-ov" id="ntcOv" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ntcT">
+  <div class="ntc">
+    <div class="ntc-h"><div class="ntc-t" id="ntcT">📢 공지 — 아누비스 「일반 리베이스」 7월 말 하락분 반영 완료 (2026-08-13)</div></div>
+    <div class="ntc-b">
+      <b>무슨 일이 있었나</b>
+      <ul>
+        <li>온체인 일반 리베이스 율이 <b>7월 말 하락</b>했습니다: 7월 중순까지 <span class="num">0.1496~0.1499%</span> → 07-25 <span class="num">0.1448%</span> → 08-02 <span class="num">0.1318%</span> → 현재 <span class="num ok">0.1302%/ep (0.5208%/day)</span>.</li>
+        <li><b>원인(온체인 리베이스 이벤트 실측)</b>: 주요인은 <b>7월 말(07-23~08-02) 프로토콜의 에폭당 발행량 하향</b>(−7%)입니다. 이후의 완만한 추가 하락은 <b>스테이킹 총량 증가에 따른 희석</b>(부요인)입니다 — 7월 중순까지는 발행량이 총량 증가(+18%)를 따라 올라 율이 0.15%로 유지되고 있었습니다.</li>
+        <li>이 페이지의 첫 방문 화면은 하락 전 실측치 <span class="num">0.1495%/ep (0.5980%/day)</span>를 기준값으로 쓰고 있어, <b>하락분이 반영되지 않았습니다</b>. 그 기간(약 07-25 ~ 08-13) 일반 리베이스·일일 합산·한 달/1년 단순 계산이 실제보다 최대 약 15% 높게 표시되었습니다. (Extra interest·Sell Tax·Turbine Fee는 정확했습니다.)</li>
+      </ul>
+      <b>왜 반영이 늦었나</b>
+      <ul>
+        <li>① 첫 로드는 내장 기준값을 쓰고, <b>같은 브라우저로 다른 에폭에 재방문해야만</b> 실측으로 바뀌는 구조였습니다.</li>
+        <li>② 그 기준값이 하락 전 측정치로 고정되어 있었습니다 — 리베이스는 운영자가 수시로 조정하는 <b>살아있는 값</b>인데, 고정값 폴백이 변화를 따라가지 못했습니다.</li>
+      </ul>
+      <b>수정 내용</b>
+      <ul>
+        <li>이제 <b>첫 로드부터 과거 블록(아카이브) 델타로 즉시 실측</b>합니다 — 운영 측이 율을 조정하면 화면에 바로 반영됩니다. 아카이브 조회가 실패한 항목만 기준값으로 표시되며, 그 행에 「기준값」 배지가 명시됩니다.</li>
+        <li>폴백 기준값도 08-13 실측치로 갱신했습니다.</li>
+      </ul>
+      혼란을 끼쳐드려 죄송합니다. 모든 율은 온체인에서 직접 검증하실 수 있습니다(각 행의 🔗).
+    </div>
+    <div class="ntc-f"><button class="ntc-x" onclick="ntcClose()">닫기</button></div>
+  </div>
+</div>
+<script>
+function ntcClose(){document.getElementById('ntcOv').style.display='none';try{localStorage.setItem('lgnsr:ntc-20260813','1');}catch(e){}}
+try{if(!localStorage.getItem('lgnsr:ntc-20260813'))document.getElementById('ntcOv').style.display='flex';}catch(e){document.getElementById('ntcOv').style.display='flex';}
+</script>
+
 <div class="wrap">
 
   <div class="g2">
@@ -194,11 +237,11 @@ const CFG={
   sel:{ epoch:"0x900cf0cf", circulating:"0x9358928b", totalSupply:"0x18160ddd",
     getReserves:"0x0902f1ac", silenceUSDT:"0xbffc7b0c", curIndex:"0x26987b60", curEpoch:"0x76671808",
     extraInterest:"0xb01d3563", stakes:"0x584b62a1", feeRatio:"0x41744dd4", extraFeeRatio:"0x3c336ff4" },
-  // 폴백 baseline (2026-08-12 온체인 재측정) — 아카이브 조회가 실패했을 때만 쓰이며 '기준값' 배지로 드러난다.
+  // 폴백 baseline (2026-08-13 온체인 재측정 — 리베이스는 7월 말부터 점진 하락: 07-25 0.1448 → 08-01 0.1328 → 08-13 0.1302)
   seed:{
     extraDay:{p360:0.1600,p600:0.1198,a360:0.3000,a600:0.3900},
     extraEp :{p360:0.0800,p600:0.0599,a360:0.1500,a600:0.1950},
-    rebaseDay:{poly:0.5232,anu:0.5232}, rebaseEp:{poly:0.1308,anu:0.1308},
+    rebaseDay:{poly:0.5208,anu:0.5208}, rebaseEp:{poly:0.1302,anu:0.1302},
     sellTax:{poly:0.05,anu:0.3825}, turbFee:{poly:0.003,anu:0.053}, // Polygon ≈0.3%(수수료 無) / Anubis ≈5.3%(매수 0.3% + 프로토콜 5%, 2026-06-15 실거래 디코드 실증)
   },
   EXTRA_EP_PER_DAY:2, REB_EP_PER_DAY:4,
