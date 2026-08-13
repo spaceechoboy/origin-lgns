@@ -84,7 +84,7 @@ test('★금지 필드 회귀: 지갑주소·잔액·쿼리는 결과에 존재�
     balance: 4851.23, query: '?wallet=0xabc', extra: 'x',
   }, META);
   assert.deepEqual(Object.keys(r).sort(),
-    ['country', 'day', 'device', 'ev', 'mode', 'page', 'ref', 'site', 'ts']);
+    ['country', 'day', 'device', 'ev', 'mode', 'page', 'ref', 'region', 'site', 'ts']);
   assert.ok(!JSON.stringify(r).includes('0xC7Ed'), '주소가 어떤 필드로도 새면 안 됨');
   assert.ok(!JSON.stringify(r).includes('4851'), '잔액이 새면 안 됨');
 });
@@ -99,31 +99,55 @@ test('기기 판정: 모바일 UA', () => {
   assert.equal(r.device, 'mobile');
 });
 
-import { makeVid, isInternal } from '../src/worker.js';
+test('지역: CF region이 오면 저장, 없으면 빈 값 — IP 원본과 무관한 시/도 수준', () => {
+  assert.equal(normalize({ page: 'index', ev: 'view' }, { ...META, region: 'Seoul' }).region, 'Seoul');
+  assert.equal(normalize({ page: 'index', ev: 'view' }, META).region, '');
+  assert.equal(normalize({ page: 'index', ev: 'view' }, { ...META, region: 'x'.repeat(99) }).region.length, 40);
+});
 
-test('vid: 같은 날·같은 IP·UA면 같은 값, 16자 hex', async () => {
-  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
-  const b = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
+import { makeVid, isInternal, record } from '../src/worker.js';
+
+test('vid: 같은 달·같은 IP·UA면 같은 값, 16자 hex', async () => {
+  const a = await makeVid('2026-07', 'salt', '1.2.3.4', 'UA');
+  const b = await makeVid('2026-07', 'salt', '1.2.3.4', 'UA');
   assert.equal(a, b);
   assert.match(a, /^[0-9a-f]{16}$/);
 });
 
-test('★vid: 날짜가 바뀌면 다른 값 — 장기 추적 불가가 설계 의도', async () => {
-  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
-  const b = await makeVid('2026-07-29', 'salt', '1.2.3.4', 'UA');
+test('★vid: 달이 바뀌면 다른 값 — 달을 넘는 추적 불가가 설계 의도', async () => {
+  const a = await makeVid('2026-07', 'salt', '1.2.3.4', 'UA');
+  const b = await makeVid('2026-08', 'salt', '1.2.3.4', 'UA');
   assert.notEqual(a, b);
 });
 
 test('vid: IP나 UA가 다르면 다른 값', async () => {
-  const a = await makeVid('2026-07-28', 'salt', '1.2.3.4', 'UA');
-  assert.notEqual(a, await makeVid('2026-07-28', 'salt', '9.9.9.9', 'UA'));
-  assert.notEqual(a, await makeVid('2026-07-28', 'salt', '1.2.3.4', 'OTHER'));
+  const a = await makeVid('2026-07', 'salt', '1.2.3.4', 'UA');
+  assert.notEqual(a, await makeVid('2026-07', 'salt', '9.9.9.9', 'UA'));
+  assert.notEqual(a, await makeVid('2026-07', 'salt', '1.2.3.4', 'OTHER'));
 });
 
 test('vid: 솔트가 다르면 다른 값(솔트 유출 시 역산 방어)', async () => {
   assert.notEqual(
-    await makeVid('2026-07-28', 'salt-a', '1.2.3.4', 'UA'),
-    await makeVid('2026-07-28', 'salt-b', '1.2.3.4', 'UA'));
+    await makeVid('2026-07-a', 'salt-a', '1.2.3.4', 'UA'),
+    await makeVid('2026-07-a', 'salt-b', '1.2.3.4', 'UA'));
+});
+
+test('★record: 같은 달의 다른 날이면 같은 vid — MAU 집계의 근거', async () => {
+  const seen = [];
+  const env = {
+    DB: { prepare: (sql) => ({ bind: (...a) => ({
+      first: async () => ({ n: 0 }),
+      run: async () => { if (sql.startsWith('INSERT')) seen.push(a[5]); },
+    }) }) },
+    VID_SALT: 'salt',
+  };
+  const base = { ts: 0, site: 'origin-lgns', page: 'index', ev: 'view',
+                 country: 'KR', device: 'mobile', mode: 'web', ref: '' };
+  await record(env, { ...base, day: '2026-08-01' }, '1.2.3.4', 'UA');
+  await record(env, { ...base, day: '2026-08-31' }, '1.2.3.4', 'UA');
+  await record(env, { ...base, day: '2026-09-01' }, '1.2.3.4', 'UA');
+  assert.equal(seen[0], seen[1]);       // 같은 달 → 한 사람으로 집계
+  assert.notEqual(seen[1], seen[2]);    // 달이 바뀌면 리셋
 });
 
 test('내부 IP 판정: 목록에 있으면 true, 공백 허용', () => {
@@ -175,6 +199,8 @@ test('수집: D1에 1행 INSERT — 컬럼 순서와 값', async () => {
   assert.equal(a[8], 'app');               // mode
   assert.equal(a[9], 't.me');              // ref
   assert.equal(a[10], 0);                  // internal
+  assert.equal(a[11], '');                 // region (테스트 Request엔 cf가 없다)
+  assert.equal(a.length, 12);
 });
 
 test('★금지 필드 회귀: 지갑주소를 보내도 D1 인자에 존재하지 않는다', async () => {
@@ -254,6 +280,7 @@ test('/stats: 올바른 토큰이면 집계 JSON', async () => {
   assert.deepEqual(j.totals, { views: 10, visitors: 4 });
   assert.deepEqual(j.daily, [{ day: '2026-07-28', views: 10, visitors: 4 }]);
   assert.ok(Array.isArray(j.countries) && Array.isArray(j.events));
+  assert.ok(Array.isArray(j.hourly) && Array.isArray(j.regions) && Array.isArray(j.monthly));
 });
 
 test('★기본은 자기 트래픽 제외(internal<=0), internal=1이면 포함', async () => {
@@ -286,6 +313,8 @@ const DATA = {
   days: 14, since: '2026-07-15', internal: 0,
   totals: { views: 120, visitors: 45 },
   daily: [{ day: '2026-07-28', views: 10, visitors: 4 }],
+  hourly: [{ k: '21', views: 6, visitors: 3 }],
+  regions: [{ k: 'KR·Seoul', n: 22 }],
   pages: [{ k: 'index', n: 80 }], countries: [{ k: 'US', n: 50 }],
   devices: [{ k: 'mobile', n: 90 }], modes: [{ k: 'app', n: 30 }],
   refs: [{ k: 't.me', n: 12 }], events: [{ k: 'rates:refresh', n: 9 }],
@@ -311,6 +340,14 @@ test('렌더: 핵심 수치가 HTML에 들어간다', () => {
   assert.match(html, /45/);             // 고유 방문자
   assert.match(html, /rates:refresh/);
   assert.match(html, /t\.me/);
+  assert.match(html, /KR·Seoul/);       // 지역
+});
+
+test('렌더: 시간대는 KST 24행으로 채워진다(빈 시간 0 포함)', () => {
+  const html = renderDash(DATA, 'right');
+  assert.match(html, /21시/);
+  assert.match(html, /00시/);           // 데이터 없는 시간대도 행이 있어야 분포가 보인다
+  assert.equal((html.match(/"k">\d\d시</g) || []).length, 24);
 });
 
 test('★XSS 회귀: 오염된 ref가 그대로 실행되지 않는다', () => {
