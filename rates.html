@@ -166,7 +166,7 @@ try{if(!localStorage.getItem('lgnsr:ntc-20260813'))document.getElementById('ntcO
     <!-- Polygon -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span></div></div>
+        <div><div class="ct">Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="polyStale"></span></div></div>
         <div class="badges"><span class="bdg" id="polyTax">Sell Tax —</span><button class="ev" data-ev="tax:poly" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">Turbine Fee —</span><button class="ev" data-ev="turb:poly" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
@@ -174,7 +174,7 @@ try{if(!localStorage.getItem('lgnsr:ntc-20260813'))document.getElementById('ntcO
     <!-- Anubis -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span></div></div>
+        <div><div class="ct">Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="anuStale"></span></div></div>
         <div class="badges"><span class="bdg" id="anuTax">Sell Tax —</span><button class="ev" data-ev="tax:anu" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">Turbine Fee —</span><button class="ev" data-ev="turb:anu" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
@@ -224,12 +224,19 @@ const CFG={
   },
   sel:{ epoch:"0x900cf0cf", circulating:"0x9358928b", totalSupply:"0x18160ddd",
     getReserves:"0x0902f1ac", silenceUSDT:"0xbffc7b0c", curIndex:"0x26987b60", curEpoch:"0x76671808",
+    // ★ ABI 이름은 nextRewardAt이지만 실측상 값은 '마지막 갱신 시각'이다(2026-08-14 확인:
+    //   틱 직전 블록에서 읽으면 직전 틱 시각을 반환). 예고용으로 쓰면 안 되고, 주기 실측과
+    //   정지 감지에만 쓴다.
+    lastUpd:"0xc8f33c91",
     extraInterest:"0xb01d3563", stakes:"0x584b62a1", feeRatio:"0x41744dd4", extraFeeRatio:"0x3c336ff4" },
   // 폴백 baseline (2026-08-13 온체인 재측정 — 리베이스는 7월 말부터 점진 하락: 07-25 0.1448 → 08-01 0.1328 → 08-13 0.1302)
   seed:{
     extraDay:{p360:0.1600,p600:0.1198,a360:0.3000,a600:0.3900},
     extraEp :{p360:0.0800,p600:0.0599,a360:0.1500,a600:0.1950},
-    rebaseDay:{poly:0.5208,anu:0.5208}, rebaseEp:{poly:0.1302,anu:0.1302},
+    rebaseDay:{poly:0.5208,anu:0.5160}, rebaseEp:{poly:0.1302,anu:0.1290},
+    // 리베이스 주기(시간). 폴리곤은 온체인 상수(epoch().length×블록시간)라 항상 실측으로 덮이고,
+    // 아누비스는 온체인에 주기가 없어(오프체인 크론) 관측값이다 — 아래 seed는 폴백일 뿐.
+    rebaseEpH:{poly:6,anu:6},
     sellTax:{poly:0.05,anu:0.3825}, turbFee:{poly:0.003,anu:0.053}, // Polygon ≈0.3%(수수료 無) / Anubis ≈5.3%(매수 0.3% + 프로토콜 5%, 2026-06-15 실거래 디코드 실증)
   },
   EXTRA_EP_PER_DAY:2, REB_EP_PER_DAY:4,
@@ -394,8 +401,12 @@ function spotFromReserves(chain,r0,r1){ return chain==='poly' ? (Number(r0)/1e18
 function recovery(t,phi){ return 2-(1+phi)/(1-t); }                 // ≤0 = 킬스위치
 function netEff(extraDay,rec){ return extraDay*Math.max(rec,0)*1; } // 음수 회수는 0으로 클램프(킬스위치 표시)
 function rawNet(extraDay,rec){ return extraDay*rec; }
-function rebCompound(perEp,days){ return (Math.pow(1+perEp/100,CFG.REB_EP_PER_DAY*days)-1)*100; } // 리베이스 에폭 복리 누적(%)
-function simpleYield(rebPerEp,extraPerDay,days){ return rebCompound(rebPerEp,days)+extraPerDay*days; } // 복리 + extra 단리(수령 전 명목, %)
+// 리베이스 에폭 복리 누적(%). epPerDay는 체인별 실측(폴리곤=온체인 상수, 아누비스=틱 간격 관측).
+// 하드코딩 4를 쓰면 주기가 바뀐 체인에서 조용히 과대·과소가 된다.
+function rebCompound(perEp,days,epPerDay){ return (Math.pow(1+perEp/100,(epPerDay||CFG.REB_EP_PER_DAY)*days)-1)*100; }
+function simpleYield(rebPerEp,extraPerDay,days,epPerDay){ return rebCompound(rebPerEp,days,epPerDay)+extraPerDay*days; } // 복리 + extra 단리(수령 전 명목, %)
+/** 주기(시간) → 하루 에폭 수. 0·비유한은 폴백 4. */
+function epPerDayOf(epochH){ return Number.isFinite(epochH)&&epochH>0 ? 24/epochH : CFG.REB_EP_PER_DAY; }
 function perEpGi(dGi,dEp,denom){ return dGi/dEp/denom*100; }                       // extra=단리 → 산술 증분
 function perEpIdx(idxNow,idxPrev,dEp){ return (Math.pow(idxNow/idxPrev,1/dEp)-1)*100; } // rebase=복리 → 기하 평균
 
@@ -407,9 +418,15 @@ function runSelfTests(){
   chk(recovery(0.55,0)<0,'killswitch >50% negative');
   chk(Math.abs(rawNet(0.24,recovery(0.05,0.003))-0.22661)<1e-3,'net poly360');
   chk(Math.abs(rawNet(0.39,recovery(0.2875,0.05))-0.20526)<1e-3,'net anu600 φ5%');
-  chk(Math.abs(rebCompound(0.15,30)-19.7056)<0.01,'rebase compound 30d');
-  chk(Math.abs(rebCompound(0.15,365)-792.07)<0.5,'rebase compound 365d');
-  chk(Math.abs(simpleYield(0.15,0.30,30)-28.7056)<0.02,'simple yield 30d');
+  chk(Math.abs(rebCompound(0.15,30,4)-19.7056)<0.01,'rebase compound 30d');
+  chk(Math.abs(rebCompound(0.15,365,4)-792.07)<0.5,'rebase compound 365d');
+  chk(Math.abs(simpleYield(0.15,0.30,30,4)-28.7056)<0.02,'simple yield 30d');
+  // 인자 생략 시 종전 상수(4)와 동일해야 한다 — 호출처 누락이 조용히 값을 바꾸지 않도록.
+  chk(Math.abs(rebCompound(0.15,30)-rebCompound(0.15,30,4))<1e-12,'epPerDay 생략=4');
+  // ★ 주기 실측 배선: 8h 주기면 하루 3회, 12h면 2회. 하드코딩 4가 남아 있으면 여기서 깨진다.
+  chk(Math.abs(epPerDayOf(6)-4)<1e-12&&Math.abs(epPerDayOf(8)-3)<1e-12&&Math.abs(epPerDayOf(12)-2)<1e-12,'epPerDayOf');
+  chk(epPerDayOf(0)===4&&epPerDayOf(NaN)===4,'epPerDayOf 폴백');
+  chk(rebCompound(0.129,365,3)<rebCompound(0.129,365,4),'주기 8h면 연환산이 낮아진다');
   chk(Math.abs(spotFromReserves('poly',145845869810072400000000000n,55998319335534200n)-2.6045)<0.01,'poly spot');
   chk(Math.abs(spotFromReserves('anu',36361161864700000n,147357506548200000000000000n)-4.0526)<0.01,'anu spot');
   chk(toHex32(1000000000)==='000000000000000000000000000000000000000000000000000000003b9aca00','encode 1e9');
@@ -426,8 +443,8 @@ function seedState(){
   S.poly.sellTax=CFG.seed.sellTax.poly; S.anu.sellTax=CFG.seed.sellTax.anu;
   S.poly.turbFee=CFG.seed.turbFee.poly; S.anu.turbFee=CFG.seed.turbFee.anu;
   S.poly.taxSt=S.anu.taxSt=S.poly.turbSt=S.anu.turbSt='seed';
-  S.poly.reb={perDay:CFG.seed.rebaseDay.poly,perEp:CFG.seed.rebaseEp.poly,status:'seed'};
-  S.anu.reb ={perDay:CFG.seed.rebaseDay.anu, perEp:CFG.seed.rebaseEp.anu, status:'seed'};
+  S.poly.reb={perDay:CFG.seed.rebaseDay.poly,perEp:CFG.seed.rebaseEp.poly,epochH:CFG.seed.rebaseEpH.poly,epPerDay:epPerDayOf(CFG.seed.rebaseEpH.poly),status:'seed'};
+  S.anu.reb ={perDay:CFG.seed.rebaseDay.anu, perEp:CFG.seed.rebaseEp.anu, epochH:CFG.seed.rebaseEpH.anu, epPerDay:epPerDayOf(CFG.seed.rebaseEpH.anu), status:'seed'};
   PROD.forEach(p=>{S.extra[p.k]={perDay:CFG.seed.extraDay[p.k],perEp:CFG.seed.extraEp[p.k],status:'seed'};});
 }
 
@@ -453,30 +470,42 @@ async function readRebasePoly(){
   const distribute=Number(ew[3]);
   let circ; try{circ=Number(hb(await call('poly',CFG.poly.slgns,CFG.sel.circulating)));if(!circ)throw 0;}
   catch(e){circ=Number(hb(await call('poly',CFG.poly.slgns,CFG.sel.totalSupply)));}
-  const perEp=distribute/circ*100; return {perEp,perDay:perEp*CFG.REB_EP_PER_DAY,status:'live'};
+  const perEp=distribute/circ*100;
+  // 주기는 온체인 상수 — epoch().length(블록) × 실측 블록시간. 폴리곤은 컨트랙트가 스스로
+  // 실행하므로 '정지'라는 상태가 없고, end 블록을 지나면 다음 호출에서 이미 굴러 있다.
+  const c=await clk('poly');
+  const epochH=c&&Number(ew[0])>0 ? Number(ew[0])*c.sec/3600 : CFG.seed.rebaseEpH.poly;
+  const epd=epPerDayOf(epochH);
+  return {perEp,perDay:perEp*epd,epochH,epPerDay:epd,status:'live'};
 }
 async function readRebaseAnu(){
   // ★ 아카이브 우선: 오라클 currentIndex()/currentEpoch()를 현재+과거 두 시점에서 읽어 첫 페인트에 확정.
   //   perEp = (idx_now/idx_prev)^(1/Δepoch) − 1 (복리). Δ분모는 온체인 epoch 카운터만 쓴다.
   const at=async blk=>onOne('anu',async u=>{
-    const [i,e]=await Promise.all([rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curIndex},blk]),
-                                   rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curEpoch},blk])]);
-    const idx=Number(hb(i))/1e9, ep=Number(hb(e));
-    return idx>0&&ep>0?{idx,ep}:null;
+    const [i,e,l]=await Promise.all([rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curIndex},blk]),
+                                     rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.curEpoch},blk]),
+                                     rpc(u,'eth_call',[{to:ORACLE_ANU,data:CFG.sel.lastUpd},blk])]);
+    const idx=Number(hb(i))/1e9, ep=Number(hb(e)), lut=Number(hb(l));
+    return idx>0&&ep>0?{idx,ep,lut}:null;
   });
   const now=await at('latest'); if(!now) throw new Error('anu oracle');
-  const {idx,ep}=now;
+  const {idx,ep,lut}=now;
   const k='reb:anu', prev=cg(k), se=CFG.seed.rebaseEp.anu;
-  const out=(perEp,status)=>({perDay:perEp*CFG.REB_EP_PER_DAY,perEp,status});
+  // 아누비스는 주기가 온체인에 없다(오프체인 크론) → 두 틱의 lastUpdate 간격으로 실측한다.
+  // 실측 불가하면 seed 주기로 폴백하되, 그 사실이 값에 섞이지 않게 epochH를 그대로 실어보낸다.
+  const out=(perEp,status,epochH)=>{ const h=Number.isFinite(epochH)&&epochH>0&&epochH<=48?epochH:CFG.seed.rebaseEpH.anu,
+    epd=epPerDayOf(h); return {perDay:perEp*epd,perEp,epochH:h,epPerDay:epd,lut,status}; };
   const d=await archiveDelta('anu',at,now);
   if(d&&d.prev.idx>0&&idx>d.prev.idx){ const perEp=perEpIdx(idx,d.prev.idx,d.dEp);
-    cs(k,{idx,ep,perEp,live:true}); return out(perEp,'live'); }
+    const h=(d.prev.lut>0&&lut>d.prev.lut)?(lut-d.prev.lut)/d.dEp/3600:NaN;
+    cs(k,{idx,ep,perEp,epochH:h,live:true}); return out(perEp,'live',h); }
   // 폴백: 아카이브 미지원/실패 → 기존 localStorage 델타(첫 방문은 '기준값'으로 화면에 드러남)
   if(!prev||typeof prev.idx!=='number'||typeof prev.ep!=='number'){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); }
   if(ep>prev.ep){ const perEp=perEpIdx(idx,prev.idx,ep-prev.ep);
-                  cs(k,{idx,ep,perEp,live:true}); return out(perEp,'live'); }
+                  const h=(prev.lut>0&&lut>prev.lut)?(lut-prev.lut)/(ep-prev.ep)/3600:NaN;
+                  cs(k,{idx,ep,perEp,epochH:h,lut,live:true}); return out(perEp,'live',h); }
   if(idx<prev.idx){ cs(k,{idx,ep,perEp:se,live:false}); return out(se,'seed'); } // 인덱스 감소(이상) → 재기준
-  return out((prev.perEp)||se, prev.live?'live':'wait');                     // 같은 epoch — 직전 실측 유지
+  return out((prev.perEp)||se, prev.live?'live':'wait', prev.epochH);         // 같은 epoch — 직전 실측 유지
 }
 // extra(단리) — poly/anu 동일 구조: ΔglobalIndex ÷ Δepoch ÷ denom. 아카이브 우선, 실패 시 localStorage 델타.
 // 벽시계 ÷days는 extra epoch이 11~13h로 교차해 ±8% 드리프트 → 온체인 epoch 카운터만 분모로 쓴다.
@@ -514,21 +543,43 @@ function rateRow(label,perDay,perEp,epH,extraCls,tag,evKey){
   const row=`<div class="rrow"><span class="rl">${label}</span><span class="rv ${extraCls||''}">${pct(perDay,4)}/day${tag||''}<span class="sub">${pct(perEp,4)}/ep·${epH}h${ev}</span></span></div>`;
   return row + (evKey?`<div class="evrow" id="${evId(evKey)}" hidden></div>`:'');
 }
+/**
+ * 마지막 리베이스 이후 경과를 카드 메타에 붙인다.
+ * 정상(주기 이내)에도 표시한다 — 평소 값을 봐 둔 사람만 이상을 알아챌 수 있기 때문.
+ * 주기×1.5를 넘으면 경고로 바꾸고 ③④가 전제를 잃었음을 명시한다. lut이 없으면(폴리곤·측정실패) 숨긴다.
+ */
+function renderStale(chain,reb,epH){
+  const el=$(chain==='poly'?'polyStale':'anuStale'); if(!el) return;
+  const lut=reb&&reb.lut;
+  if(!lut||!Number.isFinite(lut)||lut<=0){ el.textContent=''; return; }
+  const ageH=(Date.now()/1000-lut)/3600;
+  const late=ageH>epH*1.5;
+  el.textContent=' · '+(late?'⚠ 리베이스 ':'⏱ 리베이스 ')+fN(ageH,1)+'시간 전'+(late?' — 지연(하루 환산은 참고용)':'');
+  el.style.color=late?'var(--warn)':'';
+  el.title=late
+    ? '마지막 리베이스 이후 '+fN(ageH,1)+'시간 경과 — 주기('+fN(epH,epH%1?2:0)+'h)를 넘겼습니다. 아누비스 주기는 온체인 상수가 아니라 운영자 스케줄이라 지연·변경될 수 있고, 그동안 ③일일 합산·④단순 계산의 「하루 '+fN(epPerDayOf(epH),2)+'회」 전제가 성립하지 않습니다.'
+    : '마지막 리베이스 이후 '+fN(ageH,1)+'시간 경과 (주기 '+fN(epH,epH%1?2:0)+'h)';
+}
 function renderChain(chain){
-  const meta=chain==='poly'?'Quickswap LP · 6h rebase · extra 12h epoch':'RocketSwap LP · 6h rebase · extra 12h epoch';
-  $(chain==='poly'?'polyMeta':'anuMeta').textContent=meta;
   const reb=chain==='poly'?S.poly.reb:S.anu.reb;
+  const epH=reb.epochH||CFG.seed.rebaseEpH[chain];
+  const meta=(chain==='poly'?'Quickswap LP · ':'RocketSwap LP · ')+fN(epH,epH%1?2:0)+'h rebase · extra 12h epoch';
+  $(chain==='poly'?'polyMeta':'anuMeta').textContent=meta;
+  // ★ 정지 감지 — 아누비스는 주기가 오프체인 크론이라 멈출 수 있고, 멈춘 체인과 정상 체인이
+  //   화면에서 구별되지 않으면 '하루 N회 돈다'는 ③④의 전제가 조용히 깨진다(2026-08-13 실사고:
+  //   25h 정지). 폴리곤은 컨트랙트 자체 실행이라 이 상태가 없다.
+  renderStale(chain,reb,epH);
   const prods=PROD.filter(p=>p.chain===chain);
   let html='';
   prods.forEach(p=>{
     const ex=S.extra[p.k];
     const sumDay=reb.perDay+ex.perDay;
-    const m30=simpleYield(reb.perEp,ex.perDay,30), y365=simpleYield(reb.perEp,ex.perDay,365);
+    const m30=simpleYield(reb.perEp,ex.perDay,30,reb.epPerDay), y365=simpleYield(reb.perEp,ex.perDay,365,reb.epPerDay);
     // ③④는 ①②의 파생값 — 입력이 실측이 아니면 그 사실을 큰 숫자 옆에 그대로 달아준다(경고 없는 ④ = 오독의 주범).
     const dstat=[reb.status,ex.status].filter(s=>s!=='live').sort()[0], dtag=dstat?sttag(dstat):'';
     html+=`<div class="prod">
       <div class="prod-h"><span class="prod-t">${p.k.endsWith('360')?'360일 LONG':'600일 LONG'}</span><span class="prod-meta">${p.term}</span></div>
-      ${rateRow('① 일반 리베이스 (복리)',reb.perDay,reb.perEp,6,'',sttag(reb.status),'reb:'+chain)}
+      ${rateRow('① 일반 리베이스 (복리)',reb.perDay,reb.perEp,fN(epH,epH%1?2:0),'',sttag(reb.status),'reb:'+chain)}
       ${rateRow('② Extra interest (단리)',ex.perDay,ex.perEp,12,'hot',sttag(ex.status),'extra:'+p.k)}
       <div class="rrow"><span class="rl">③ 일일 합산 (①+②)</span><span class="rv hot">${pct(sumDay,4)}/day${dtag}<span class="sub">리베이스+추가보상</span></span></div>
       <div class="rrow" title="리베이스 에폭 복리 + 추가보상 단리(수령 전 명목). 추가보상을 수령해 일반 스테이킹으로 전환하면 실제 수익률은 이보다 훨씬 커짐"><span class="rl">④ 단순 계산 <span class="eqtag">한 달·1년</span></span><span class="rv">+${fN(m30,1)}% · +${fN(y365,0)}%${dtag}<span class="sub">30d·365d</span></span></div>
