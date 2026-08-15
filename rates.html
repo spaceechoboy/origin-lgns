@@ -166,7 +166,7 @@ try{if(!localStorage.getItem('lgnsr:ntc-20260813'))document.getElementById('ntcO
     <!-- Polygon -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="polyStale"></span></div></div>
+        <div><div class="ct">Polygon 137</div><div class="cs"><span id="polyMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="polyXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="polyEta"></span><span class="xcd" id="polyStale"></span></div></div>
         <div class="badges"><span class="bdg" id="polyTax">Sell Tax —</span><button class="ev" data-ev="tax:poly" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="polyTurb">Turbine Fee —</span><button class="ev" data-ev="turb:poly" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="polyBody"><div class="note">로딩 중…</div></div>
@@ -174,7 +174,7 @@ try{if(!localStorage.getItem('lgnsr:ntc-20260813'))document.getElementById('ntcO
     <!-- Anubis -->
     <div class="card">
       <div class="ch">
-        <div><div class="ct">Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="anuStale"></span></div></div>
+        <div><div class="ct">Anubis 6714</div><div class="cs"><span id="anuMeta">RocketSwap 시세 · 6h rebase epoch</span> · <span class="xcd" id="anuXcd">⏳ 추가보상 ≈ —</span><span class="xcd" id="anuEta"></span><span class="xcd" id="anuStale"></span></div></div>
         <div class="badges"><span class="bdg" id="anuTax">Sell Tax —</span><button class="ev" data-ev="tax:anu" title="Sell Tax 소스 컨트랙트">🔗</button><span class="bdg" id="anuTurb">Turbine Fee —</span><button class="ev" data-ev="turb:anu" title="Turbine 컨트랙트">🔗</button></div>
       </div>
       <div class="cb" id="anuBody"><div class="note">로딩 중…</div></div>
@@ -388,6 +388,41 @@ function extraEtaMs(chain){
   if(chain==='anu') return nextUtcHours([6,19]);   // 관측 스케줄(vault 0.95) — 전환 관측 전 콜드스타트 추정
   return null;                                      // Polygon: 검증 앵커 없음 → 관측 전 '측정 중'
 }
+/**
+ * 다음 리베이스까지 — 두 체인의 성질이 다르므로 근거도 다르게 표시한다.
+ *
+ * Polygon : 컨트랙트가 `epoch().end`(블록번호)를 선언한다. 남은 블록 × 실측 블록시간이면
+ *           **예고**다. 2026-08-13 두 차례 0블록·0초로 적중 확인.
+ * Anubis  : 온체인 타이머가 없다(오프체인 크론). 마지막 갱신 + 실측 주기로 **추정**할 뿐이며,
+ *           2026-08-13 26.8h 정지처럼 스케줄이 밀면 추정은 그냥 빗나간다. 그래서 '≈'를 붙이고
+ *           지연 상태에서는 카운트다운 대신 경과(renderStale)만 남긴다 — 멈춘 시계로
+ *           '곧 옵니다'를 그리지 않기 위해서.
+ */
+function rebaseEta(chain){
+  const reb=S[chain]&&S[chain].reb; if(!reb) return null;
+  if(chain==='poly'){
+    const e=S.poly.epochEndsAt;
+    return (typeof e==='number'&&Number.isFinite(e))?{at:e,exact:true}:null;
+  }
+  const lut=reb.lut, h=reb.epochH;
+  if(!lut||!Number.isFinite(lut)||!Number.isFinite(h)||h<=0) return null;
+  const at=(lut+h*3600)*1000;
+  if(Date.now()>at+h*3600*1000*0.5) return null;   // 지연 구간 — 경과 표기에 맡긴다
+  return {at,exact:false};
+}
+function tickEta(){ ['poly','anu'].forEach(ch=>{
+  const el=$(ch==='poly'?'polyEta':'anuEta'); if(!el) return;
+  const e=rebaseEta(ch);
+  if(!e){ el.textContent=''; return; }
+  const left=e.at-Date.now();
+  let t;
+  if(left<=0) t='임박';
+  else { const h=Math.floor(left/3600000), m=Math.floor(left%3600000/60000); t=(e.exact?'':'≈ ')+(h>0?h+'h ':'')+m+'m'; }
+  el.textContent=' · ⏳ 다음 리베이스 '+t;
+  el.title=e.exact
+    ? '폴리곤 스테이킹 컨트랙트가 선언한 발동 블록(epoch().end)까지 남은 블록 × 실측 블록시간 — 추정이 아니라 예고입니다.'
+    : '아누비스는 온체인 타이머가 없어(운영자 스케줄) 마지막 갱신 + 실측 주기로 추정한 값입니다. 스케줄이 밀리면 빗나갑니다.';
+}); }
 function tickExtra(){ ['poly','anu'].forEach(ch=>{ const el=$(ch==='poly'?'polyXcd':'anuXcd'); if(!el)return;
   const eta=extraEtaMs(ch);
   if(eta==null){ el.textContent='⏳ 추가보상 측정 중'; el.title='첫 epoch 전환 관측 후 추정 표시(온체인 타이머 없음)'; return; }
@@ -426,6 +461,22 @@ function runSelfTests(){
   // ★ 주기 실측 배선: 8h 주기면 하루 3회, 12h면 2회. 하드코딩 4가 남아 있으면 여기서 깨진다.
   chk(Math.abs(epPerDayOf(6)-4)<1e-12&&Math.abs(epPerDayOf(8)-3)<1e-12&&Math.abs(epPerDayOf(12)-2)<1e-12,'epPerDayOf');
   chk(epPerDayOf(0)===4&&epPerDayOf(NaN)===4,'epPerDayOf 폴백');
+  // ★ 카운트다운 근거의 분리: 폴리곤은 예고(exact), 아누비스는 추정(≈)이며 지연 시엔 아예 접는다.
+  (function(){
+    const S0=JSON.parse(JSON.stringify({poly:S.poly,anu:S.anu}));
+    S.poly.epochEndsAt=Date.now()+3600e3;
+    chk(rebaseEta('poly')&&rebaseEta('poly').exact===true,'poly ETA=예고');
+    S.poly.epochEndsAt=null;
+    chk(rebaseEta('poly')===null,'poly end 경과 시 미표시');
+    const now=Date.now()/1000;
+    S.anu.reb={perEp:0.13,perDay:0.52,epochH:6,epPerDay:4,lut:now-3600,status:'live'};
+    const e=rebaseEta('anu');
+    chk(e&&e.exact===false,'anu ETA=추정');
+    chk(Math.abs(e.at-(now-3600+6*3600)*1000)<1500,'anu ETA=lut+주기');
+    S.anu.reb={perEp:0.13,perDay:0.52,epochH:6,epPerDay:4,lut:now-26*3600,status:'live'};
+    chk(rebaseEta('anu')===null,'anu 지연 구간이면 카운트다운 접음(경과 표기에 위임)');
+    S.poly=S0.poly; S.anu=S0.anu;
+  })();
   chk(rebCompound(0.129,365,3)<rebCompound(0.129,365,4),'주기 8h면 연환산이 낮아진다');
   chk(Math.abs(spotFromReserves('poly',145845869810072400000000000n,55998319335534200n)-2.6045)<0.01,'poly spot');
   chk(Math.abs(spotFromReserves('anu',36361161864700000n,147357506548200000000000000n)-4.0526)<0.01,'anu spot');
@@ -476,6 +527,9 @@ async function readRebasePoly(){
   const c=await clk('poly');
   const epochH=c&&Number(ew[0])>0 ? Number(ew[0])*c.sec/3600 : CFG.seed.rebaseEpH.poly;
   const epd=epPerDayOf(epochH);
+  // 발동 블록까지 남은 블록 → 벽시계. 읽은 시각에 앵커해 스냅샷이 묵어도 드리프트하지 않는다.
+  // end가 이미 지났으면 다음 폴링에서 새 end를 읽으므로 null(카운트다운 미표시).
+  if(c){ const left=Number(ew[2])-c.bn; S.poly.epochEndsAt = left>0 ? Date.now()+left*c.sec*1000 : null; }
   return {perEp,perDay:perEp*epd,epochH,epPerDay:epd,status:'live'};
 }
 async function readRebaseAnu(){
@@ -638,6 +692,7 @@ async function go(){
 
 seedState(); renderAll(); runSelfTests(); go();
 setInterval(tickExtra,1000); tickExtra();
+setInterval(tickEta,1000); tickEta();
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{})); }
 </script>
 <div class="signature">SpaceEchoBoy</div>
