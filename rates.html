@@ -251,20 +251,25 @@ const PROD=[
 // ───────────────────────── 온체인 근거 (evidence links) ─────────────────────────
 const EXPL ={ poly:"https://polygonscan.com", anu:"https://browser.anubispace.org" };       // 사람용 링크
 const BSAPI={ poly:"https://polygon.blockscout.com", anu:"https://browser.anubispace.org" }; // 원인 tx 조회(무료·키없음)
-const ORACLE_ANU="0xb4E5b7665186229d8A5B0ba3706c5C119dD1B47b", ACCT_ANU="0x3041C3524C560C7e8887F671e046aC4e95bD8F13";
+const ORACLE_ANU="0xb4E5b7665186229d8A5B0ba3706c5C119dD1B47b";
+// 추가보상 증분을 12h마다 써넣는 운영자 지갑(양 체인 동일)과 그 셀렉터 — setter(epoch, 증분).
+// 컨트랙트가 미검증이라 함수명은 미상. 셀렉터·calldata 배치는 2026-08-19 실측(4상품 전부 동일).
+const OPER="0x3041C3524C560C7e8887F671e046aC4e95bD8F13", SEL_BUMP="0xa6cf611b";
 // 율별 소스 컨트랙트 + (가능 시)정확한 원인 tx 필터. cause=null → 컨트랙트+블록 링크만(검증가능).
 // v=익스플로러 verified(Read 탭 有) · k=값 출처(getter=뷰함수 / storage=스토리지슬롯). 검증상태 실측(2026-06-18): Polygon=verified, Anubis=unverified.
 const EVID={
   "reb:poly":  {chain:"poly", v:true,  k:"getter",  src:CFG.poly.staking, cause:null,
-                basis:"Staking 다음 발행량 ÷ sLGNS 유통량 (즉시값)", look:"epoch() 4번째값(distribute) ÷ circulatingSupply()"},
+                // 분자·분모가 서로 다른 컨트랙트에 있다 — 한쪽만 링크하면 화면에서 율을 재현할 수 없다.
+                src2:{addr:CFG.poly.slgns, look:"circulatingSupply() = 분모"},
+                basis:"Staking 다음 발행량 ÷ sLGNS 유통량 (즉시값)", look:"epoch() 4번째값 distribute = 분자(÷1e9)"},
   "reb:anu":   {chain:"anu",  v:false, k:"getter",  src:ORACLE_ANU, cause:{addr:ORACLE_ANU, method:"0xa1849438", label:"오라클이 인덱스를 새 값으로 갱신"},
                 basis:"오라클 인덱스의 epoch당 성장률 (복리)", look:"currentIndex()·currentEpoch()"},
-  "extra:p360":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c360, cause:null, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a(globalIndex)·0x6b(epoch), 매 epoch +1,200,000"},
-  "extra:p600":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c600, cause:null, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a·0x6b, 매 epoch +783,000"},
-  "extra:a360":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c360, cause:null,
-                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b(globalIndex)·0x6c(epoch), 매 epoch +1,500,000"},
-  "extra:a600":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c600, cause:null,
-                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b·0x6c, 매 epoch +1,950,000"},
+  "extra:p360":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c360, cause:null, bump:true, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a(globalIndex)·0x6b(epoch) — 증분은 아래 설정 tx"},
+  "extra:p600":{chain:"poly", v:true,  k:"storage", src:CFG.poly.c600, cause:null, bump:true, basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6a(globalIndex)·0x6b(epoch) — 증분은 아래 설정 tx"},
+  "extra:a360":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c360, cause:null, bump:true,
+                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b(globalIndex)·0x6c(epoch) — 증분은 아래 설정 tx"},
+  "extra:a600":{chain:"anu",  v:false, k:"storage", src:CFG.anu.c600, cause:null, bump:true,
+                basis:"LONG globalIndex 증가분 ÷ 1e9 (단리)", look:"slot 0x6b(globalIndex)·0x6c(epoch) — 증분은 아래 설정 tx"},
   "tax:poly":  {chain:"poly", v:true,  k:"getter",  src:CFG.poly.lgns, cause:null, basis:"LGNS 토큰 매도 수수료율", look:"feeRatio()(÷1e5) + extraFeeRatio()"},
   "tax:anu":   {chain:"anu",  v:false, k:"getter",  src:CFG.anu.lgns, cause:null, basis:"LGNS 토큰 매도 수수료율(동적)", look:"feeRatio()·extraFeeRatio() (각 ÷1e5)"},
   "turb:poly": {chain:"poly", v:true,  k:"getter",  src:CFG.poly.turbine, cause:null, basis:"1 LGNS silence 매수견적 ÷ LP시장가 − 1", look:"getSilenceUSDTAmount() ÷ LP getReserves()"},
@@ -283,6 +288,35 @@ async function causeTx(key){
     return _txCache[key]= t?{hash:t.hash,block:t.block_number}:null;
   }catch(_){ return _txCache[key]=null; }                              // 폴백: 원인 tx 생략(컨트랙트+블록은 유지)
 }
+const _bumpCache={};
+/**
+ * 추가보상 증분을 설정한 최신 tx. **익스플로러로는 못 찾는다**(2026-08-19 실측):
+ * 컨트랙트 tx 첫 페이지 50건이 40초 치라 12h 전 tx는 수백 페이지 뒤이고, 운영자 지갑 쪽은
+ * 커뮤니티 보상으로 도배되며, advanced-filter API도 method 필터도 없고, 이 tx는 로그를 안 남긴다.
+ * 그래서 globalIndex가 바뀐 블록을 이분탐색으로 찾아 그 블록에서 셀렉터로 집는다(≈18 RPC).
+ * 패널을 펼칠 때만 돌며, 실패하면 null → 호출자가 수동 경로를 안내한다.
+ */
+async function bumpTx(key){
+  if(key in _bumpCache) return _bumpCache[key];
+  const e=EVID[key], ch=e.chain, addr=e.src, slot=CFG[ch].slotGI;
+  try{
+    const c=await clk(ch); if(!c) throw 0;
+    let hi=c.bn, lo=hi-Math.round(26*3600/c.sec);
+    // 아카이브를 실제로 서빙하는 엔드포인트 하나에 고정한다 — 탐색 중간에 프루닝 노드가 섞이면
+    // 이분탐색이 조용히 엉뚱한 블록으로 수렴한다.
+    const gi=(u,b)=>rpc(u,'eth_getStorageAt',[addr,slot,'0x'+b.toString(16)]).then(x=>Number(hb(x)));
+    const url=await onOne(ch,async u=>{ if(!(await gi(u,lo))) throw new Error('pruned'); return u; });
+    const vhi=await gi(url,hi);
+    if(await gi(url,lo)===vhi) throw 0;                       // 26h 내 변경 없음(스케줄 정지 등)
+    // globalIndex는 단조증가 → '현재값이 된 첫 블록'을 찾으면 창 안에 틱이 여럿이어도 최신 것을 집는다.
+    while(hi-lo>1){ const mid=Math.floor((hi+lo)/2); if(await gi(url,mid)===vhi) hi=mid; else lo=mid; }
+    const blk=await rpc(url,'eth_getBlockByNumber',['0x'+hi.toString(16),true]);
+    const t=(blk.transactions||[]).find(x=>(x.to||'').toLowerCase()===addr.toLowerCase()&&(x.input||'').indexOf(SEL_BUMP)===0);
+    if(!t) throw 0;
+    return _bumpCache[key]={hash:t.hash, block:hi, inc:Number(hb('0x'+t.input.slice(74,138)))};
+  }catch(_){ return _bumpCache[key]=null; }
+}
+
 // 대시보드가 직접 읽은 실제 값 (미검증 컨트랙트는 익스플로러 Read 탭이 없으니 이게 핵심 근거)
 function vals(key){
   if(key.indexOf("reb:")===0){ const c=cg(key); if(c&&typeof c.idx==="number") return "인덱스 "+c.idx.toFixed(2)+" · epoch "+c.ep; }
@@ -298,12 +332,19 @@ function fillEvRow(key){
   let h='<div class="evb">이 율 = '+e.basis+'</div>';
   if(mv) h+='<div class="evi">🔢 측정값 <b>'+mv+'</b> <span class="evdim">(대시보드가 eth_call로 직접 읽음)</span></div>';
   if(e.cause) h+='<div class="evi evtx evdim">⏳ 변경 tx 조회중…</div>';
+  if(e.bump)  h+='<div class="evi evbump evdim">⏳ 설정 tx 조회중… <span class="evdim">(체인 이분탐색, 몇 초)</span></div>';
   if(readTab)
     h+='<div class="evi">📄 컨트랙트 '+A(e.src.slice(0,10)+"…", readUrl(ch,e.src))+' <span class="evdim">→ verified: Read 탭에서 '+e.look+' 직접 호출</span></div>';
   else
-    h+='<div class="evi">📄 컨트랙트 '+A(e.src.slice(0,10)+"…", exUrl(ch,"address",e.src))+' <span class="evdim">→ '+(e.v?"":"⚠ 미검증(Read 탭 없음). ")+(e.k==="storage"?"값=스토리지 "+e.look:e.look)+" · 검증은 위 측정값 + "+(e.cause?"아래 변경 tx":"Transactions/Logs 탭")+'</span></div>';
-  h+='<div class="evi">⏱ 읽은 블록 '+(blk?A("#"+blk, exUrl(ch,"block",blk)):"—")+' <span class="evdim">(측정 시점)</span></div>';
+    h+='<div class="evi">📄 컨트랙트 '+A(e.src.slice(0,10)+"…", exUrl(ch,"address",e.src))+' <span class="evdim">→ '+(e.v?"":"⚠ 미검증(Read 탭 없음). ")+(e.k==="storage"?"값=스토리지 "+e.look:e.look)+" · 검증은 위 측정값 + "+(e.cause||e.bump?"아래 tx":"Transactions/Logs 탭")+'</span></div>';
+  if(e.src2) h+='<div class="evi">📄 분모 컨트랙트 '+A(e.src2.addr.slice(0,10)+"…", readUrl(ch,e.src2.addr))+' <span class="evdim">→ Read 탭에서 '+e.src2.look+'</span></div>';
+  h+='<div class="evi" title="이 값을 읽던 순간의 그 체인 최신 블록 번호다. 값 자체는 latest로 읽으므로 ±몇 블록 차이가 날 수 있고(고정 스냅샷이 아니라 시점 표식), 율은 이 블록과 8~64h 전 블록의 차이로 계산한다.">⏱ 읽은 블록 '+(blk?A("#"+blk, exUrl(ch,"block",blk)):"—")+' <span class="evdim">(측정 시점 — 값을 읽던 순간의 최신 블록)</span></div>';
   el.innerHTML=h; el.hidden=false;
+  if(e.bump) bumpTx(key).then(tx=>{ const sp=el.querySelector(".evbump"); if(!sp)return;
+    sp.classList.remove("evdim");
+    sp.innerHTML = tx ? '🔗 최신 설정 tx '+A(String(tx.hash).slice(0,12)+"…", exUrl(ch,"tx",tx.hash))
+        +' <span class="evdim">— 운영자 '+OPER.slice(0,8)+'…가 epoch당 증분 <b>'+tx.inc.toLocaleString("en-US")+'</b> 설정 (÷1e9 = '+(tx.inc/1e7).toFixed(4)+'%/ep, blk '+tx.block+')</span>'
+      : '🔎 설정 tx 자동조회 실패 → 운영자 '+A(OPER.slice(0,10)+"…", exUrl(ch,"address",OPER))+' <span class="evdim">가 12h마다 보내는 '+SEL_BUMP+' tx의 두 번째 인자 ÷ 1e9</span>'; });
   if(e.cause) causeTx(key).then(tx=>{ const sp=el.querySelector(".evtx"); if(!sp)return;
     sp.classList.remove("evdim");
     sp.innerHTML = tx ? '🔗 변경 tx '+A(String(tx.hash).slice(0,12)+"…", exUrl(ch,"tx",tx.hash))+' <span class="evdim">— '+e.cause.label+" (blk "+tx.block+")</span>"
